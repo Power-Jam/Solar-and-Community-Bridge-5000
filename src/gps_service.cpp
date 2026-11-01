@@ -22,7 +22,7 @@ void publish_status(const char *text)
     GpsStatus status{};
     strlcpy(status.text, text, sizeof(status.text));
     if (status_queue && xQueueOverwrite(status_queue, &status) != pdTRUE) {
-        Serial.println("Unable to publish GPS status");
+        Serial.println("[GPS] Unable to publish GPS status");
     }
 }
 
@@ -91,13 +91,13 @@ void gps_service_init()
 {
     status_queue = xQueueCreate(1, sizeof(GpsStatus));
     if (!status_queue) {
-        Serial.println("Unable to create GPS status queue");
+        Serial.println("[GPS] Unable to create GPS status queue");
         return;
     }
 
     publish_status("Waiting for GPS data...");
     if (xTaskCreate(gps_task, "gps", 8192, nullptr, 1, nullptr) != pdPASS) {
-        Serial.println("Unable to start GPS task");
+        Serial.println("[GPS] Unable to start GPS task");
         vQueueDelete(status_queue);
         status_queue = nullptr;
     }

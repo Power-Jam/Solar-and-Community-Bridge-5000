@@ -30,7 +30,7 @@ void publish_status(const char *text)
     AudioStatus status{};
     strlcpy(status.text, text, sizeof(status.text));
     if (status_queue && xQueueOverwrite(status_queue, &status) != pdTRUE) {
-        Serial.println("Unable to publish audio status");
+        Serial.println("[Audio] Unable to publish audio status");
     }
 }
 
@@ -85,7 +85,7 @@ void audio_service_init()
     playback_queue = xQueueCreate(1, sizeof(AudioBuffer));
     status_queue = xQueueCreate(1, sizeof(AudioStatus));
     if (!playback_queue || !status_queue) {
-        Serial.println("Unable to create audio queues");
+        Serial.println("[Audio] Unable to create audio queues");
         if (playback_queue) {
             vQueueDelete(playback_queue);
             playback_queue = nullptr;
@@ -102,7 +102,7 @@ void audio_service_init()
 
     publish_status("Audio ready / 48 kHz stereo WAV");
     if (xTaskCreate(audio_task, "audio", 6144, nullptr, 2, nullptr) != pdPASS) {
-        Serial.println("Unable to start audio task");
+        Serial.println("[Audio] Unable to start audio task");
         publish_status("Unable to start audio task");
         vQueueDelete(playback_queue);
         playback_queue = nullptr;

@@ -28,11 +28,11 @@ public:
             sdmmc_host_state_t current{};
             const esp_err_t error = sdmmc_host_get_state(&current);
             if (error != ESP_OK) {
-                Serial.printf("SDMMC state check failed: %s\n", esp_err_to_name(error));
+                Serial.printf("[SD] SDMMC state check failed: %s\n", esp_err_to_name(error));
                 return error;
             }
             if (current.host_initialized) {
-                Serial.println("SDMMC host already initialized; reusing it");
+                Serial.println("[SD] SDMMC host already initialized; reusing it");
                 return ESP_OK;
             }
             return sdmmc_host_init();

@@ -56,6 +56,8 @@
 #define GPS_GPIO_RX 48
 #define GPS_BAUD 9600
 
+#define TEMP_GPIO_DATA 53
+
 #define AUDIO_FILE "/audio/demo.wav"
 #define AUDIO_GPIO_BCLK 22
 #define AUDIO_GPIO_LRCLK 21
