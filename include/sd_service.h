@@ -22,5 +22,7 @@ void sd_service_start();
 bool sd_service_request(SdCommand command);
 bool sd_service_read_status(char *destination, size_t capacity);
 bool sd_service_take_image(SdImage *image);
+/** 0 while no card is mounted; otherwise a value that changes with every successful mount. */
+uint32_t sd_service_mount_id();
 
 #endif

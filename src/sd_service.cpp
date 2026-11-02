@@ -7,6 +7,7 @@
 #include <Arduino.h>
 #include <JPEGDEC.h>
 #include <algorithm>
+#include <atomic>
 #include <cstdio>
 #include <cstring>
 #include <dirent.h>
@@ -39,6 +40,7 @@ struct StatusMessage {
 QueueHandle_t command_queue;
 QueueHandle_t status_queue;
 QueueHandle_t image_queue;
+std::atomic<uint32_t> mount_id{0};
 
 int draw_jpeg_block(JPEGDRAW *block)
 {
@@ -232,10 +234,15 @@ void media_task(void *)
     bool mounted = false;
     size_t index = 0;
     SdCommand command = SdCommand::Retry;
+    uint32_t mount_count = 0;
 
     for (;;) {
         if (command == SdCommand::Retry) {
+            mount_id = 0;
             mounted = storage.mount();
+            if (mounted) {
+                mount_id = ++mount_count;
+            }
             Serial.printf("[SD] Mount %s / DMA RAM free %u, largest block %u bytes\n",
                           mounted ? "ok" : "failed",
                           static_cast<unsigned>(heap_caps_get_free_size(MALLOC_CAP_DMA)),
@@ -361,4 +368,9 @@ bool sd_service_take_image(SdImage *image)
 {
     return image_queue && image &&
            xQueueReceive(image_queue, image, 0) == pdTRUE;
+}
+
+uint32_t sd_service_mount_id()
+{
+    return mount_id;
 }
