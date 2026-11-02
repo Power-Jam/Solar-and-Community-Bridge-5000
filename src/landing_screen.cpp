@@ -1,3 +1,4 @@
+#include "landing_screen.h"
 #include "ui.h"
 
 #include "eez-flow.h"
