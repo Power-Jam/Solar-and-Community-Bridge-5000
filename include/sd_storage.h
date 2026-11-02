@@ -24,6 +24,7 @@ public:
 
         sdmmc_host_t host = SDMMC_HOST_DEFAULT();
         host.slot = SDMMC_HOST_SLOT_0;
+        host.max_freq_khz = SDMMC_FREQ_HIGHSPEED;
         host.init = []() {
             sdmmc_host_state_t current{};
             const esp_err_t error = sdmmc_host_get_state(&current);
@@ -53,13 +54,20 @@ public:
         };
 
         sdmmc_slot_config_t slot{};
+        // 1-bit only: D1-D3 (GPIO 40-42) are wired to touch reset, LCD reset and touch interrupt.
         slot.width = 1;
         slot.cd = SDMMC_SLOT_NO_CD;
         slot.wp = SDMMC_SLOT_NO_WP;
 
         esp_vfs_fat_sdmmc_mount_config_t config{};
         config.max_files = 4;
-        return esp_vfs_fat_sdmmc_mount("/sdcard", &host, &slot, &config, &card) == ESP_OK;
+        const esp_err_t error = esp_vfs_fat_sdmmc_mount("/sdcard", &host, &slot, &config, &card);
+        if (error != ESP_OK) {
+            Serial.printf("[SD] Mount failed: %s\n", esp_err_to_name(error));
+            return false;
+        }
+        Serial.printf("[SD] Card clock %d kHz\n", card->real_freq_khz);
+        return true;
     }
 
 private:
