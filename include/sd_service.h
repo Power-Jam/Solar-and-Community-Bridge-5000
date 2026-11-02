@@ -10,6 +10,11 @@ struct SdImage {
     uint16_t height;
 };
 
+struct SdBackground {
+    size_t index;
+    SdImage image;
+};
+
 enum class SdCommand : uint8_t {
     Previous,
     Next,
@@ -22,7 +27,9 @@ void sd_service_start();
 bool sd_service_request(SdCommand command);
 bool sd_service_read_status(char *destination, size_t capacity);
 bool sd_service_take_image(SdImage *image);
-/** 0 while no card is mounted; otherwise a value that changes with every successful mount. */
-uint32_t sd_service_mount_id();
+/** JPGs to decode into PSRAM after every mount, as card paths like "/assets/nav-bar.jpg". Paths must stay valid. Call before sd_service_start(). */
+void sd_service_set_backgrounds(const char *const *paths, size_t count);
+/** The next decoded file, with index into the registered paths. The caller owns image.pixels. */
+bool sd_service_take_background(SdBackground *background);
 
 #endif

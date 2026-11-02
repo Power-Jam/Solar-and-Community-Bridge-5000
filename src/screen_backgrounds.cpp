@@ -4,7 +4,7 @@
 #include "screens.h"
 #include "sd_service.h"
 
-#include <Arduino.h>
+#include <cstdlib>
 #include <cstring>
 #include <lvgl.h>
 
@@ -21,6 +21,7 @@ struct Background {
     {&objects.level_point_##n##__level_ongoing_image, "S:/assets/level-ongoing-image.jpg"}
 
 // "S:" is LV_FS_POSIX_LETTER; LVGL resolves these paths under LV_FS_POSIX_PATH (/sdcard).
+// Files load in this order, so what the user sees first belongs at the top.
 const Background backgrounds[] = {
     {&objects.homepage_background, "S:/assets/homepage-background.jpg"},
     {&objects.user_list_background, "S:/assets/user-list-background.jpg"},
@@ -45,34 +46,92 @@ const Background backgrounds[] = {
     LEVEL_POINT_IMAGES(8),
 };
 
-uint32_t applied_mount_id = 0;
+constexpr size_t MaxFiles = sizeof(backgrounds) / sizeof(backgrounds[0]);
+
+struct LoadedFile {
+    const char *path;
+    uint16_t *pixels;
+    lv_image_dsc_t descriptor;
+};
+
+// One entry per distinct file: widgets showing the same file share its pixels.
+LoadedFile files[MaxFiles];
+const char *file_paths[MaxFiles];
+size_t file_count = 0;
+
+LoadedFile *find_file(const char *path)
+{
+    for (size_t i = 0; i < file_count; ++i) {
+        if (strcmp(files[i].path, path) == 0) {
+            return &files[i];
+        }
+    }
+    return nullptr;
+}
 
 // The generated lookup only knows images[], which is empty in this project and
-// dereferences a null name, so answer SD paths from flows here.
+// dereferences a null name, so answer SD paths from flows here. Files that are
+// not in PSRAM (yet) fall back to LVGL decoding them from the card.
 const void *find_flow_image(const char *name)
 {
-    return strncmp(name, "S:/", 3) == 0 ? name : nullptr;
+    if (strncmp(name, "S:/", 3) != 0) {
+        return nullptr;
+    }
+    const LoadedFile *file = find_file(name);
+    if (file && file->pixels) {
+        return &file->descriptor;
+    }
+    return name;
+}
+
+void apply_loaded_file(const SdBackground &loaded)
+{
+    LoadedFile &file = files[loaded.index];
+    uint16_t *old_pixels = file.pixels;
+
+    file.pixels = loaded.image.pixels;
+    file.descriptor.header.magic = LV_IMAGE_HEADER_MAGIC;
+    file.descriptor.header.cf = LV_COLOR_FORMAT_RGB565;
+    file.descriptor.header.flags = 0;
+    file.descriptor.header.w = loaded.image.width;
+    file.descriptor.header.h = loaded.image.height;
+    file.descriptor.header.stride = loaded.image.width * sizeof(uint16_t);
+    file.descriptor.data_size = static_cast<uint32_t>(
+        loaded.image.width * loaded.image.height * sizeof(uint16_t));
+    file.descriptor.data = reinterpret_cast<const uint8_t *>(file.pixels);
+
+    for (const Background &background : backgrounds) {
+        if (strcmp(background.path, file.path) == 0) {
+            lv_image_set_src(*background.widget, &file.descriptor);
+        }
+    }
+    // Flows can show this descriptor on widgets outside the table.
+    lv_obj_invalidate(lv_screen_active());
+
+    // LVGL draws on this task, so nothing is still reading the old pixels.
+    free(old_pixels);
 }
 }
 
 void screen_backgrounds_init()
 {
     eez::flow::getLvglImageByNameHook = find_flow_image;
+
+    for (const Background &background : backgrounds) {
+        if (!find_file(background.path)) {
+            files[file_count].path = background.path;
+            // The SD service reads through the VFS, which has no "S:" drive letter.
+            file_paths[file_count] = background.path + 2;
+            ++file_count;
+        }
+    }
+    sd_service_set_backgrounds(file_paths, file_count);
 }
 
 void screen_backgrounds_tick()
 {
-    const uint32_t mount_id = sd_service_mount_id();
-    if (mount_id == applied_mount_id) {
-        return;
-    }
-    applied_mount_id = mount_id;
-
-    for (const Background &background : backgrounds) {
-        // Without a mounted card, clear the source so LVGL stops reading from it.
-        lv_image_set_src(*background.widget, mount_id ? background.path : nullptr);
-        if (mount_id && !lv_image_get_src(*background.widget)) {
-            Serial.printf("[UI] Could not load background %s\n", background.path);
-        }
+    SdBackground loaded;
+    while (sd_service_take_background(&loaded)) {
+        apply_loaded_file(loaded);
     }
 }
