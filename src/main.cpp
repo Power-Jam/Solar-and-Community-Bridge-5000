@@ -8,6 +8,7 @@
 #include "rfid.h"
 #include "touch.h"
 #include "ui.h"
+#include "landing_screen.h"
 #include "sd_service.h"
 #include "lora_service.h"
 #include "audio_service.h"
@@ -25,6 +26,7 @@ namespace
         Serial.println("[LVGL] LVGL task started");
         while (true) {
             ui_tick();
+            landing_screen_tick();
 
             static bool first_handler_reported = false;
             if (!first_handler_reported) {
@@ -79,6 +81,7 @@ void setup()
 
     const bool touch_available = touch_init(i2c_ready);
     ui_init();
+    landing_screen_init();
     sd_service_init();
     wifi_init(sd_service_start);
     lora_service_init();
