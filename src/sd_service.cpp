@@ -287,7 +287,7 @@ void sd_service_init()
     status_queue = xQueueCreate(1, sizeof(StatusMessage));
     image_queue = xQueueCreate(1, sizeof(SdImage));
     if (!command_queue || !status_queue || !image_queue) {
-        Serial.println("SD service queue allocation failed");
+        Serial.println("[SD] SD service queue allocation failed");
         if (command_queue) {
             vQueueDelete(command_queue);
             command_queue = nullptr;
@@ -311,7 +311,7 @@ void sd_service_start()
         return;
     }
     if (xTaskCreate(media_task, "sd-media", 12288, nullptr, 1, nullptr) != pdPASS) {
-        Serial.println("SD media task creation failed");
+        Serial.println("[SD] SD media task creation failed");
         vQueueDelete(command_queue);
         vQueueDelete(status_queue);
         vQueueDelete(image_queue);

@@ -24,7 +24,7 @@ bool record_touch_failure(bool & pressed)
     if (touch_failures < TouchFailureLimit) {
         ++touch_failures;
         if (touch_failures == TouchFailureLimit) {
-            Serial.println("GT911 not responding; retrying every second");
+            Serial.println("[Touch] GT911 not responding; retrying every second");
         }
     }
     if (touch_failures == TouchFailureLimit) {
@@ -38,7 +38,7 @@ bool record_touch_failure(bool & pressed)
 void record_touch_success()
 {
     if (touch_failures == TouchFailureLimit) {
-        Serial.println("GT911 responding again");
+        Serial.println("[Touch] GT911 responding again");
     }
     touch_failures = 0;
 }
@@ -93,7 +93,7 @@ void touch_read(lv_indev_t *, lv_indev_data_t * data)
     data->point.x = last_x;
     data->point.y = last_y;
     if (pressed && !previous_pressed) {
-        Serial.printf("Touch %d,%d\n", last_x, last_y);
+        Serial.printf("[Touch] Touch %d,%d\n", last_x, last_y);
     }
 }
 
@@ -103,7 +103,7 @@ void register_navigation(lv_obj_t * button, int16_t screen_id, const char * name
         lv_obj_add_event_cb(button, navigate_on_click, LV_EVENT_CLICKED,
                             reinterpret_cast<void *>(static_cast<intptr_t>(screen_id)));
     } else {
-        Serial.printf("%s button was not created\n", name);
+        Serial.printf("[Touch] %s button was not created\n", name);
     }
 }
 
@@ -115,7 +115,7 @@ void register_navigation(lv_obj_t * button, int16_t screen_id, const char * name
 bool touch_init(bool i2c_available)
 {
     if (!i2c_available) {
-        Serial.println("GT911 touch controller unavailable: I2C bus failed");
+        Serial.println("[Touch] GT911 touch controller unavailable: I2C bus failed");
         return false;
     }
 
@@ -134,12 +134,12 @@ bool touch_init(bool i2c_available)
         touch_address = 0x14;
         if (!read_touch_register(0x8140, id, sizeof(id))) {
             touch_address = 0x5D;
-            Serial.println("CrowPanel GT911 touch controller is unavailable");
+            Serial.println("[Touch] CrowPanel GT911 touch controller is unavailable");
             return false;
         }
     }
     touch_available = true;
-    Serial.println("CrowPanel GT911 touch controller ready");
+    Serial.println("[Touch] CrowPanel GT911 touch controller ready");
     return true;
 }
 
@@ -197,7 +197,7 @@ void touch_setup_lvgl(lv_display_t * display)
 {
     lv_indev_t * touch_indev = lv_indev_create();
     if (!touch_indev) {
-        Serial.println("Unable to create LVGL touch input");
+        Serial.println("[Touch] Unable to create LVGL touch input");
         return;
     }
 

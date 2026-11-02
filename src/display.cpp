@@ -44,7 +44,7 @@ lv_display_t *display_init()
     digitalWrite(LCD_GPIO_BLIGHT, LOW);
 
     if (!panel.begin()) {
-        Serial.println("CrowPanel DSI display startup failed");
+        Serial.println("[Display] CrowPanel DSI display startup failed");
         return nullptr;
     }
 
@@ -53,7 +53,7 @@ lv_display_t *display_init()
     digitalWrite(LCD_GPIO_BLIGHT, HIGH);
 
     lv_init();
-    lv_log_register_print_cb([](lv_log_level_t, const char *message) { Serial.print(message); });
+    lv_log_register_print_cb([](lv_log_level_t, const char *message) { Serial.printf("[LVGL] %s", message); });
     lv_tick_set_cb([]() -> uint32_t { return millis(); });
 
     const size_t draw_buffer_size = PANEL_WIDTH * LVGL_BUFFER_ROWS * sizeof(lv_color_t);
@@ -62,14 +62,14 @@ lv_display_t *display_init()
     auto *draw_buffer_1 = static_cast<lv_color_t *>(
         heap_caps_malloc(draw_buffer_size, MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT));
     if (!draw_buffer_0 || !draw_buffer_1) {
-        Serial.println("LVGL partial draw-buffer allocation failed");
+        Serial.println("[Display] LVGL partial draw-buffer allocation failed");
         free_frame_buffers(draw_buffer_0, draw_buffer_1);
         return nullptr;
     }
 
     lv_display_t *display = lv_display_create(PANEL_WIDTH, PANEL_HEIGHT);
     if (!display) {
-        Serial.println("LVGL display creation failed");
+        Serial.println("[Display] LVGL display creation failed");
         free_frame_buffers(draw_buffer_0, draw_buffer_1);
         return nullptr;
     }

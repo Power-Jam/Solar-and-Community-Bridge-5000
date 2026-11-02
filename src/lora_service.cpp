@@ -35,7 +35,7 @@ void publish_status(const char *text)
     StatusMessage status{};
     strlcpy(status.text, text, sizeof(status.text));
     if (status_queue && xQueueOverwrite(status_queue, &status) != pdTRUE) {
-        Serial.println("Unable to publish LoRaWAN status");
+        Serial.println("[LoRa] Unable to publish LoRaWAN status");
     }
 }
 
@@ -65,7 +65,7 @@ void publish_downlink(uint8_t port, const uint8_t *data, size_t length)
 
     Serial.printf("[LoRa] Downlink received / %s\n", message.text);
     if (!downlink_queue || xQueueOverwrite(downlink_queue, &message) != pdTRUE) {
-        Serial.println("Unable to publish LoRaWAN downlink");
+        Serial.println("[LoRa] Unable to publish LoRaWAN downlink");
     }
 }
 
@@ -320,7 +320,7 @@ void lora_service_init()
     status_queue = xQueueCreate(1, sizeof(StatusMessage));
     downlink_queue = xQueueCreate(1, sizeof(DownlinkMessage));
     if (!command_queue || !status_queue || !downlink_queue) {
-        Serial.println("Unable to create LoRaWAN queues");
+        Serial.println("[LoRa] Unable to create LoRaWAN queues");
         if (command_queue) {
             vQueueDelete(command_queue);
             command_queue = nullptr;
@@ -338,7 +338,7 @@ void lora_service_init()
 
     publish_status("Starting LoRaWAN...");
     if (xTaskCreate(radio_task, "lora", 12288, nullptr, 2, nullptr) != pdPASS) {
-        Serial.println("Unable to start LoRaWAN task");
+        Serial.println("[LoRa] Unable to start LoRaWAN task");
         vQueueDelete(command_queue);
         vQueueDelete(status_queue);
         vQueueDelete(downlink_queue);
