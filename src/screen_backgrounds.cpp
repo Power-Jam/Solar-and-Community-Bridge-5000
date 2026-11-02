@@ -17,7 +17,9 @@ struct Background {
 
 // "S:" is LV_FS_POSIX_LETTER; LVGL resolves these paths under LV_FS_POSIX_PATH (/sdcard).
 const Background backgrounds[] = {
-    {&objects.background_homepage, "S:/homepage/homepage-background.jpg"},
+    {&objects.homepage_background, "S:/assets/homepage-background.jpg"},
+    {&objects.user_list_background, "S:/assets/user-list-background.jpg"},
+    {&objects.chapter_background, "S:/assets/chapter-background.jpg"},
 };
 
 uint32_t applied_mount_id = 0;
