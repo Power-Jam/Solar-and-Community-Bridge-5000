@@ -21,7 +21,7 @@ QueueHandle_t reading_queue;
 void publish_reading(const InaReading &reading)
 {
     if (reading_queue && xQueueOverwrite(reading_queue, &reading) != pdTRUE) {
-        Serial.println("Unable to publish INA226 reading");
+        Serial.println("[INA226] Unable to publish INA226 reading");
     }
 }
 
@@ -87,11 +87,11 @@ void ina_service_init(bool i2c_available)
 
     reading_queue = xQueueCreate(1, sizeof(InaReading));
     if (!reading_queue) {
-        Serial.println("Unable to create INA226 queue");
+        Serial.println("[INA226] Unable to create INA226 queue");
         return;
     }
     if (xTaskCreate(ina_task, "ina226", 8192, nullptr, 1, nullptr) != pdPASS) {
-        Serial.println("Unable to start INA226 task");
+        Serial.println("[INA226] Unable to start INA226 task");
         vQueueDelete(reading_queue);
         reading_queue = nullptr;
     }

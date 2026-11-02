@@ -14,6 +14,7 @@
 #include <freertos/FreeRTOS.h>
 #include <freertos/queue.h>
 #include <freertos/task.h>
+#include <new>
 #include <sys/stat.h>
 #include <vector>
 
@@ -22,8 +23,8 @@ namespace
 constexpr size_t MaxImages = 128;
 constexpr size_t MaxJpegBytes = 4 * 1024 * 1024;
 constexpr size_t MaxAudioBytes = 4 * 1024 * 1024;
-constexpr int MaxImageWidth = 600;
-constexpr int MaxImageHeight = 230;
+constexpr int MaxImageWidth = 1024;
+constexpr int MaxImageHeight = 600;
 
 struct ImageBuffer {
     uint16_t *pixels;
@@ -72,6 +73,18 @@ void publish_empty_image()
     xQueueSend(image_queue, &image, portMAX_DELAY);
 }
 
+// JPEGDEC holds ~18 KB of buffers: too big for this task's stack and for internal
+// RAM, where the SD driver needs its DMA buffers.
+JPEGDEC *jpeg_decoder()
+{
+    static JPEGDEC *decoder = nullptr;
+    if (!decoder) {
+        void *memory = ps_malloc(sizeof(JPEGDEC));
+        decoder = memory ? new (memory) JPEGDEC : nullptr;
+    }
+    return decoder;
+}
+
 bool load_image(const String &path, SdImage *result)
 {
     const String full_path = String("/sdcard") + path;
@@ -87,24 +100,25 @@ bool load_image(const String &path, SdImage *result)
         fclose(file);
     }
 
-    JPEGDEC jpeg;
+    JPEGDEC *jpeg = ok ? jpeg_decoder() : nullptr;
+    ok = jpeg != nullptr;
     ImageBuffer image{};
     int scale = 0;
     bool jpeg_open = false;
     if (ok) {
-        jpeg_open = jpeg.openRAM(compressed, static_cast<int>(size), draw_jpeg_block) != 0;
+        jpeg_open = jpeg->openRAM(compressed, static_cast<int>(size), draw_jpeg_block) != 0;
         ok = jpeg_open;
     }
     if (ok) {
         while (scale < 3 &&
-               ((jpeg.getWidth() >> scale) > MaxImageWidth ||
-                (jpeg.getHeight() >> scale) > MaxImageHeight)) {
+               ((jpeg->getWidth() >> scale) > MaxImageWidth ||
+                (jpeg->getHeight() >> scale) > MaxImageHeight)) {
             ++scale;
         }
         const int divisor = 1 << scale;
-        image.width = (jpeg.getWidth() + divisor - 1) / divisor;
-        image.height = (jpeg.getHeight() + divisor - 1) / divisor;
-        ok = jpeg.getJPEGType() == JPEG_MODE_BASELINE && image.width > 0 &&
+        image.width = (jpeg->getWidth() + divisor - 1) / divisor;
+        image.height = (jpeg->getHeight() + divisor - 1) / divisor;
+        ok = jpeg->getJPEGType() == JPEG_MODE_BASELINE && image.width > 0 &&
              image.height > 0 && image.width <= MaxImageWidth &&
              image.height <= MaxImageHeight;
     }
@@ -114,13 +128,13 @@ bool load_image(const String &path, SdImage *result)
         ok = image.pixels != nullptr;
     }
     if (ok) {
-        jpeg.setUserPointer(&image);
-        jpeg.setPixelType(RGB565_LITTLE_ENDIAN);
+        jpeg->setUserPointer(&image);
+        jpeg->setPixelType(RGB565_LITTLE_ENDIAN);
         const int scales[] = {0, JPEG_SCALE_HALF, JPEG_SCALE_QUARTER, JPEG_SCALE_EIGHTH};
-        ok = jpeg.decode(0, 0, scales[scale]) != 0;
+        ok = jpeg->decode(0, 0, scales[scale]) != 0;
     }
     if (jpeg_open) {
-        jpeg.close();
+        jpeg->close();
     }
     free(compressed);
 
@@ -222,6 +236,10 @@ void media_task(void *)
     for (;;) {
         if (command == SdCommand::Retry) {
             mounted = storage.mount();
+            Serial.printf("[SD] Mount %s / DMA RAM free %u, largest block %u bytes\n",
+                          mounted ? "ok" : "failed",
+                          static_cast<unsigned>(heap_caps_get_free_size(MALLOC_CAP_DMA)),
+                          static_cast<unsigned>(heap_caps_get_largest_free_block(MALLOC_CAP_DMA)));
             images.clear();
             if (!mounted) {
                 publish_empty_image();
@@ -287,7 +305,7 @@ void sd_service_init()
     status_queue = xQueueCreate(1, sizeof(StatusMessage));
     image_queue = xQueueCreate(1, sizeof(SdImage));
     if (!command_queue || !status_queue || !image_queue) {
-        Serial.println("SD service queue allocation failed");
+        Serial.println("[SD] SD service queue allocation failed");
         if (command_queue) {
             vQueueDelete(command_queue);
             command_queue = nullptr;
@@ -311,7 +329,7 @@ void sd_service_start()
         return;
     }
     if (xTaskCreate(media_task, "sd-media", 12288, nullptr, 1, nullptr) != pdPASS) {
-        Serial.println("SD media task creation failed");
+        Serial.println("[SD] SD media task creation failed");
         vQueueDelete(command_queue);
         vQueueDelete(status_queue);
         vQueueDelete(image_queue);

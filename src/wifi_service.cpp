@@ -31,7 +31,7 @@ void publish_status(const char *text)
     WifiStatus status{};
     strlcpy(status.text, text, sizeof(status.text));
     if (statuses && xQueueOverwrite(statuses, &status) != pdTRUE) {
-        Serial.println("Unable to publish WiFi status");
+        Serial.println("[WiFi] Unable to publish WiFi status");
     }
 }
 
@@ -110,14 +110,14 @@ void wifi_init(void (*on_host_ready)())
     commands = xQueueCreate(1, sizeof(WifiCommand));
     statuses = xQueueCreate(1, sizeof(WifiStatus));
     if (!commands || !statuses) {
-        Serial.println("Unable to create WiFi queues");
+        Serial.println("[WiFi] Unable to create WiFi queues");
         on_host_ready();
         return;
     }
 
     const BaseType_t created = xTaskCreate(wifi_task, "wifi", 8192, nullptr, 1, nullptr);
     if (created != pdPASS) {
-        Serial.println("Unable to start WiFi task");
+        Serial.println("[WiFi] Unable to start WiFi task");
         on_host_ready();
         vQueueDelete(commands);
         vQueueDelete(statuses);

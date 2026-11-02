@@ -17,7 +17,7 @@ namespace
     {
         if (reader.PICC_IsNewCardPresent() && reader.PICC_ReadCardSerial())
         {
-            Serial.printf("%s UID: ", name);
+            Serial.printf("[RFID] %s UID: ", name);
             for (byte i = 0; i < reader.uid.size; ++i)
             {
                 if (reader.uid.uidByte[i] < 0x10)
@@ -41,13 +41,13 @@ void rfid_init()
     rfid2.PCD_Init();
     rfid3.PCD_Init();
 
-    Serial.println("Reader 1 version:");
+    Serial.println("[RFID] Reader 1 version:");
     rfid1.PCD_DumpVersionToSerial();
-    Serial.println("Reader 2 version:");
+    Serial.println("[RFID] Reader 2 version:");
     rfid2.PCD_DumpVersionToSerial();
-    Serial.println("Reader 3 version:");
+    Serial.println("[RFID] Reader 3 version:");
     rfid3.PCD_DumpVersionToSerial();
-    Serial.println("RFID readers ready; scan a card or tag");
+    Serial.println("[RFID] RFID readers ready; scan a card or tag");
 }
 
 void rfid_poll()

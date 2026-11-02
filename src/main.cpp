@@ -14,6 +14,7 @@
 #include "audio_service.h"
 #include "gps_service.h"
 #include "ina_service.h"
+#include "temp_service.h"
 #include "wifi_service.h"
 
 namespace
@@ -22,21 +23,21 @@ namespace
 
     void lvgl_task(void *)
     {
-        Serial.println("LVGL task started");
+        Serial.println("[LVGL] LVGL task started");
         while (true) {
             ui_tick();
             landing_screen_tick();
 
             static bool first_handler_reported = false;
             if (!first_handler_reported) {
-                Serial.println("LVGL task calling timer handler");
+                Serial.println("[LVGL] LVGL task calling timer handler");
                 first_handler_reported = true;
             }
 
             const uint32_t next_timer_ms = lv_timer_handler();
             static bool first_return_reported = false;
             if (!first_return_reported) {
-                Serial.printf("LVGL timer handler returned; stack high-water mark: %u bytes\n",
+                Serial.printf("[LVGL] LVGL timer handler returned; stack high-water mark: %u bytes\n",
                               static_cast<unsigned>(uxTaskGetStackHighWaterMark(nullptr) * sizeof(StackType_t)));
                 first_return_reported = true;
             }
@@ -68,7 +69,7 @@ void setup()
     if (i2c_ready) {
         Wire.setTimeOut(20);
     } else {
-        Serial.println("I2C initialization failed; touch may be unavailable");
+        Serial.println("[I2C] I2C initialization failed; touch may be unavailable");
     }
     audio_service_init();
 
@@ -86,11 +87,12 @@ void setup()
     lora_service_init();
     gps_service_init();
     ina_service_init(i2c_ready);
+    temp_service_init();
     if (touch_available) {
         touch_setup_lvgl(display);
     }
 
-    Serial.printf("EEZ UI ready (touch %s): Arduino %s, LVGL %d.%d.%d\n",
+    Serial.printf("[UI] EEZ UI ready (touch %s): Arduino %s, LVGL %d.%d.%d\n",
                   touch_available ? "enabled" : "unavailable",
                   ESP_ARDUINO_VERSION_STR, LVGL_VERSION_MAJOR,
                   LVGL_VERSION_MINOR, LVGL_VERSION_PATCH);
@@ -100,7 +102,7 @@ void setup()
     const BaseType_t task_created = xTaskCreate(
         lvgl_task, "lvgl", LVGL_TASK_STACK_BYTES, nullptr, LVGL_TASK_PRIORITY, nullptr);
     if (task_created != pdPASS) {
-        Serial.println("Failed to create LVGL task");
+        Serial.println("[LVGL] Failed to create LVGL task");
     }
 }
 
