@@ -21,6 +21,11 @@ struct Background {
     {&objects.level_point_##n##__level_done_image, "S:/assets/level-" #n "-done.jpg"}, \
     {&objects.level_point_##n##__level_ongoing_image, "S:/assets/level-" #n "-ongoing.jpg"}
 
+#define USER_ROW_ARROW(n) {&objects.user_row_##n##_arrow, "S:/assets/arrow-row.jpg"}
+
+// Every avatar in every size a screen shows it; users_service picks them per learner.
+#define AVATAR_FILES(n)                                                                  "S:/assets/avatars/avatar-" #n "-210.jpg", "S:/assets/avatars/avatar-" #n "-90.jpg",     "S:/assets/avatars/avatar-" #n "-42.jpg", "S:/assets/avatars/avatar-" #n "-78.jpg",      "S:/assets/avatars/avatar-" #n "-86.jpg", "S:/assets/avatars/avatar-" #n "-nav.jpg"
+
 // "S:" is LV_FS_POSIX_LETTER; LVGL resolves these paths under LV_FS_POSIX_PATH (/sdcard).
 // Files load in this order, so what the user sees first belongs at the top.
 const Background backgrounds[] = {
@@ -46,9 +51,30 @@ const Background backgrounds[] = {
     LEVEL_POINT_IMAGES(6),
     LEVEL_POINT_IMAGES(7),
     LEVEL_POINT_IMAGES(8),
+    {&objects.home_arrow_prev, "S:/assets/arrow-back.jpg"},
+    {&objects.home_arrow_next, "S:/assets/arrow-next.jpg"},
+    USER_ROW_ARROW(1),
+    USER_ROW_ARROW(2),
+    USER_ROW_ARROW(3),
+    USER_ROW_ARROW(4),
+    USER_ROW_ARROW(5),
+    USER_ROW_ARROW(6),
+    USER_ROW_ARROW(7),
+    USER_ROW_ARROW(8),
+    USER_ROW_ARROW(9),
+    USER_ROW_ARROW(10),
+    USER_ROW_ARROW(11),
+    USER_ROW_ARROW(12),
 };
 
-constexpr size_t MaxFiles = sizeof(backgrounds) / sizeof(backgrounds[0]);
+// Loaded after the backgrounds, without a fixed widget.
+const char *const preloaded[] = {
+    AVATAR_FILES(1), AVATAR_FILES(2), AVATAR_FILES(3), AVATAR_FILES(4), AVATAR_FILES(5),
+    AVATAR_FILES(6), AVATAR_FILES(7), AVATAR_FILES(8), AVATAR_FILES(9),
+};
+
+constexpr size_t MaxFiles =
+    sizeof(backgrounds) / sizeof(backgrounds[0]) + sizeof(preloaded) / sizeof(preloaded[0]);
 
 struct LoadedFile {
     const char *path;
@@ -60,6 +86,7 @@ struct LoadedFile {
 LoadedFile files[MaxFiles];
 const char *file_paths[MaxFiles];
 size_t file_count = 0;
+uint32_t loaded_version = 0;
 
 LoadedFile *find_file(const char *path)
 {
@@ -86,6 +113,16 @@ const void *find_flow_image(const char *name)
     return name;
 }
 
+void add_file(const char *path)
+{
+    if (!find_file(path)) {
+        files[file_count].path = path;
+        // The SD service reads through the VFS, which has no "S:" drive letter.
+        file_paths[file_count] = path + 2;
+        ++file_count;
+    }
+}
+
 void apply_loaded_file(const SdBackground &loaded)
 {
     LoadedFile &file = files[loaded.index];
@@ -107,6 +144,7 @@ void apply_loaded_file(const SdBackground &loaded)
             lv_image_set_src(*background.widget, &file.descriptor);
         }
     }
+    ++loaded_version;
     // Flows can show this descriptor on widgets outside the table.
     lv_obj_invalidate(lv_screen_active());
 
@@ -120,14 +158,23 @@ void screen_backgrounds_init()
     eez::flow::getLvglImageByNameHook = find_flow_image;
 
     for (const Background &background : backgrounds) {
-        if (!find_file(background.path)) {
-            files[file_count].path = background.path;
-            // The SD service reads through the VFS, which has no "S:" drive letter.
-            file_paths[file_count] = background.path + 2;
-            ++file_count;
-        }
+        add_file(background.path);
+    }
+    for (const char *path : preloaded) {
+        add_file(path);
     }
     sd_service_set_backgrounds(file_paths, file_count);
+}
+
+const void *screen_backgrounds_image(const char *path)
+{
+    const LoadedFile *file = find_file(path);
+    return file && file->pixels ? &file->descriptor : nullptr;
+}
+
+uint32_t screen_backgrounds_version()
+{
+    return loaded_version;
 }
 
 void screen_backgrounds_tick()

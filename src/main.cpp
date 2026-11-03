@@ -9,6 +9,7 @@
 #include "touch.h"
 #include "ui.h"
 #include "landing_screen.h"
+#include "users_service.h"
 #include "screen_backgrounds.h"
 #include "sd_service.h"
 #include "lora_service.h"
@@ -27,6 +28,7 @@ namespace
         Serial.println("[LVGL] LVGL task started");
         while (true) {
             ui_tick();
+            users_tick();
             landing_screen_tick();
             screen_backgrounds_tick();
 
@@ -84,6 +86,7 @@ void setup()
     const bool touch_available = touch_init(i2c_ready);
     ui_init();
     screen_backgrounds_init();
+    users_init();
     landing_screen_init();
     sd_service_init();
     wifi_init(sd_service_start);
