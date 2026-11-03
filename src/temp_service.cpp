@@ -13,6 +13,8 @@ namespace
 {
 constexpr uint32_t ReadIntervalMs = 5000;
 constexpr uint32_t ConversionMs = 750;
+// A reading older than a few cycles means the sensor was lost, so it is no longer current.
+constexpr uint32_t MaxAgeMs = 3 * (ReadIntervalMs + ConversionMs);
 
 constexpr uint8_t CommandSkipRom = 0xCC;
 constexpr uint8_t CommandConvert = 0x44;
@@ -21,6 +23,10 @@ constexpr uint8_t CommandReadScratchpad = 0xBE;
 constexpr gpio_num_t DataPin = static_cast<gpio_num_t>(TEMP_GPIO_DATA);
 
 portMUX_TYPE timing_lock = portMUX_INITIALIZER_UNLOCKED;
+portMUX_TYPE latest_lock = portMUX_INITIALIZER_UNLOCKED;
+float latest_celsius;
+uint32_t latest_at;
+bool latest_valid;
 
 bool bus_reset()
 {
@@ -129,6 +135,11 @@ void temp_task(void *)
             float celsius = 0;
             if (read_temperature(&celsius)) {
                 Serial.printf("[DS18B20] %.2f C\n", celsius);
+                portENTER_CRITICAL(&latest_lock);
+                latest_celsius = celsius;
+                latest_at = millis();
+                latest_valid = true;
+                portEXIT_CRITICAL(&latest_lock);
             } else {
                 Serial.println("[DS18B20] Read failed / CRC error or sensor lost");
             }
@@ -146,4 +157,16 @@ void temp_service_init()
     if (xTaskCreate(temp_task, "ds18b20", 8192, nullptr, 1, nullptr) != pdPASS) {
         Serial.println("[DS18B20] Unable to start DS18B20 task");
     }
+}
+
+bool temp_service_latest(float *celsius)
+{
+    if (!celsius) {
+        return false;
+    }
+    portENTER_CRITICAL(&latest_lock);
+    const bool fresh = latest_valid && millis() - latest_at <= MaxAgeMs;
+    *celsius = latest_celsius;
+    portEXIT_CRITICAL(&latest_lock);
+    return fresh;
 }

@@ -1,6 +1,9 @@
 #include "lora_service.h"
 
 #include "board_config.h"
+#include "gps_service.h"
+#include "ina_service.h"
+#include "temp_service.h"
 
 #include <Arduino.h>
 #include <Preferences.h>
@@ -12,8 +15,10 @@
 #include <freertos/task.h>
 #include <algorithm>
 #include <climits>
+#include <cmath>
 #include <cstdio>
 #include <cstring>
+#include <limits>
 
 namespace
 {
@@ -28,6 +33,92 @@ QueueHandle_t downlink_queue;
 struct DownlinkMessage {
     char text[256];
 };
+
+constexpr uint8_t AllUplinks = static_cast<uint8_t>(LoraUplink::Temperature) |
+                               static_cast<uint8_t>(LoraUplink::Energy) |
+                               static_cast<uint8_t>(LoraUplink::Gps);
+
+struct Uplink {
+    uint8_t port;
+    uint8_t length;
+    uint8_t data[16];
+};
+
+const char *uplink_name(uint8_t uplink)
+{
+    switch (static_cast<LoraUplink>(uplink)) {
+    case LoraUplink::Temperature:
+        return "Temperature";
+    case LoraUplink::Energy:
+        return "Energy";
+    case LoraUplink::Gps:
+        return "GPS";
+    }
+    return "Uplink";
+}
+
+// Values are scaled to integers and sent big-endian to keep the airtime per uplink low.
+template <typename T> void put(Uplink &uplink, T value)
+{
+    for (size_t i = sizeof(T); i-- > 0;) {
+        uplink.data[uplink.length++] =
+            static_cast<uint8_t>(static_cast<uint64_t>(value) >> (i * 8));
+    }
+}
+
+template <typename T> T scaled(double value, double scale)
+{
+    const double result = std::round(value * scale);
+    return static_cast<T>(std::min<double>(
+        std::max<double>(result, std::numeric_limits<T>::min()),
+        std::numeric_limits<T>::max()));
+}
+
+// Returns nullptr when the uplink was built, otherwise why the reading cannot be sent.
+const char *build_uplink(uint8_t kind, Uplink &uplink)
+{
+    uplink = {};
+    switch (static_cast<LoraUplink>(kind)) {
+    case LoraUplink::Temperature: {
+        // FPort 10: int16 temperature in 0.01 C.
+        float celsius = 0;
+        if (!temp_service_latest(&celsius)) {
+            return "no current DS18B20 reading";
+        }
+        uplink.port = 10;
+        put(uplink, scaled<int16_t>(celsius, 100));
+        return nullptr;
+    }
+    case LoraUplink::Energy: {
+        // FPort 20: uint16 voltage in mV, int32 current in uA, uint32 power in mW.
+        InaReading reading{};
+        if (!ina_service_latest(&reading) || !reading.connected) {
+            return "INA226 not connected";
+        }
+        if (reading.over_range) {
+            return "INA226 current over range";
+        }
+        uplink.port = 20;
+        put(uplink, scaled<uint16_t>(reading.voltage, 1000));
+        put(uplink, scaled<int32_t>(reading.current, 1000000));
+        put(uplink, scaled<uint32_t>(reading.power, 1000));
+        return nullptr;
+    }
+    case LoraUplink::Gps: {
+        // FPort 40: int32 latitude and longitude in 1e-7 degrees, uint8 satellites (255 = unknown).
+        GpsFix fix{};
+        if (!gps_service_latest(&fix)) {
+            return "no fresh GPS fix";
+        }
+        uplink.port = 40;
+        put(uplink, scaled<int32_t>(fix.latitude, 10000000));
+        put(uplink, scaled<int32_t>(fix.longitude, 10000000));
+        put(uplink, static_cast<uint8_t>(fix.satellites_valid ? fix.satellites : 255));
+        return nullptr;
+    }
+    }
+    return "unknown uplink type";
+}
 
 void publish_status(const char *text)
 {
@@ -102,6 +193,12 @@ public:
     bool can_transmit() const
     {
         return static_cast<int32_t>(millis() - allowed_at_) >= 0;
+    }
+
+    uint32_t wait_ms() const
+    {
+        const int32_t remaining = static_cast<int32_t>(allowed_at_ - millis());
+        return remaining > 0 ? static_cast<uint32_t>(remaining) : 0;
     }
 
     void defer(uint64_t delay_ms, uint32_t jitter_ms = 0)
@@ -235,7 +332,7 @@ void radio_task(void *)
     node.scanGuard = 50;
 
     uint32_t join_retry_ms = 60000;
-    bool test_pending = false;
+    uint8_t pending = 0;
     for (;;) {
         if (!node.isActivated() && node.can_transmit()) {
             publish_status("Joining TTN / LoRaWAN 1.1...");
@@ -271,21 +368,53 @@ void radio_task(void *)
         }
 
         uint8_t command = 0;
-        if (xQueueReceive(command_queue, &command, 0) == pdTRUE) {
-            test_pending = true;
-            Serial.printf("[LoRa] Test uplink requested (%s)\n",
+        while (xQueueReceive(command_queue, &command, 0) == pdTRUE) {
+            command &= AllUplinks;
+            Serial.printf("[LoRa] %s uplink requested (%s)\n",
+                          uplink_name(command),
                           node.isActivated() ? "joined" : "not joined yet");
+            if (!node.isActivated() || !node.can_transmit()) {
+                char status[160];
+                if (!node.isActivated()) {
+                    snprintf(status, sizeof(status),
+                             "%s queued / waiting for TTN join",
+                             uplink_name(command));
+                } else {
+                    snprintf(status, sizeof(status),
+                             "%s queued / airtime limit, sending in %lu s",
+                             uplink_name(command),
+                             static_cast<unsigned long>(node.wait_ms() / 1000 + 1));
+                }
+                publish_status(status);
+            }
+            pending |= command;
         }
-        if (test_pending && node.isActivated() && node.can_transmit()) {
+        if (pending && node.isActivated() && node.can_transmit()) {
+            // Send the queued types one at a time, lowest bit first, as airtime allows.
+            const uint8_t kind = pending & static_cast<uint8_t>(-pending);
+            pending &= static_cast<uint8_t>(~kind);
+
+            Uplink uplink{};
+            const char *error = build_uplink(kind, uplink);
+            if (error) {
+                char status[160];
+                snprintf(status, sizeof(status), "%s not sent / %s",
+                         uplink_name(kind), error);
+                publish_status(status);
+                continue;
+            }
+
             uint8_t downlink[255] = {};
             size_t downlink_length = sizeof(downlink);
             LoRaWANEvent_t uplink_event{}, downlink_event{};
-            publish_status("Sending test uplink / waiting for RX windows...");
+            char status[160];
+            snprintf(status, sizeof(status),
+                     "Sending %s / waiting for RX windows...", uplink_name(kind));
+            publish_status(status);
             node.scheduleTransmission(millis());
-            result = node.sendReceive(
-                reinterpret_cast<const uint8_t *>("TEST"), 4, 2,
-                downlink, &downlink_length, false,
-                &uplink_event, &downlink_event);
+            result = node.sendReceive(uplink.data, uplink.length, uplink.port,
+                                      downlink, &downlink_length, false,
+                                      &uplink_event, &downlink_event);
             node.account_airtime();
             if (result > 0) {
                 publish_downlink(downlink_event.fPort, downlink,
@@ -296,17 +425,16 @@ void radio_task(void *)
                 vTaskSuspend(nullptr);
             }
 
-            char status[160];
-            if (uplink_event.fPort == 2 && result >= 0) {
+            if (uplink_event.fPort == uplink.port && result >= 0) {
                 snprintf(status, sizeof(status),
-                         "Test uplink sent / fPort 2 / RX status %d",
-                         result);
+                         "%s sent / fPort %u / RX status %d",
+                         uplink_name(kind), uplink.port, result);
             } else {
                 snprintf(status, sizeof(status),
-                         "Test uplink failed (%d) / retry with button", result);
+                         "%s uplink failed (%d) / retry with button",
+                         uplink_name(kind), result);
             }
             publish_status(status);
-            test_pending = false;
         }
 
         vTaskDelay(pdMS_TO_TICKS(100));
@@ -316,7 +444,8 @@ void radio_task(void *)
 
 void lora_service_init()
 {
-    command_queue = xQueueCreate(1, sizeof(uint8_t));
+    // Buffers button presses while a send blocks the task; it merges them into a pending set.
+    command_queue = xQueueCreate(8, sizeof(uint8_t));
     status_queue = xQueueCreate(1, sizeof(StatusMessage));
     downlink_queue = xQueueCreate(1, sizeof(DownlinkMessage));
     if (!command_queue || !status_queue || !downlink_queue) {
@@ -348,10 +477,10 @@ void lora_service_init()
     }
 }
 
-bool lora_service_request_test_uplink()
+bool lora_service_request_uplink(LoraUplink uplink)
 {
-    const uint8_t request = 1;
-    return command_queue && xQueueOverwrite(command_queue, &request) == pdTRUE;
+    const uint8_t request = static_cast<uint8_t>(uplink);
+    return command_queue && xQueueSend(command_queue, &request, 0) == pdTRUE;
 }
 
 bool lora_service_read_status(char *destination, size_t capacity)
