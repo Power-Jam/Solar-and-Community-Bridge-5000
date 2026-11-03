@@ -291,6 +291,41 @@ void on_search_changed(lv_event_t *)
     refresh_list();
 }
 
+bool avatar_chosen()
+{
+    for (lv_obj_t *const *choice : avatar_choices) {
+        if (lv_obj_has_state(*choice, LV_STATE_CHECKED)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool name_typed()
+{
+    for (const char *c = lv_textarea_get_text(objects.user_name_input); *c; ++c) {
+        if (*c != ' ') {
+            return true;
+        }
+    }
+    return false;
+}
+
+// A disabled button gets no clicks, so Confirm's flow cannot open Chapters until a name is typed and an avatar is chosen.
+void update_confirm()
+{
+    if (name_typed() && avatar_chosen()) {
+        lv_obj_remove_state(objects.action_user_creation_confirm_11, LV_STATE_DISABLED);
+    } else {
+        lv_obj_add_state(objects.action_user_creation_confirm_11, LV_STATE_DISABLED);
+    }
+}
+
+void on_name_changed(lv_event_t *)
+{
+    update_confirm();
+}
+
 void on_avatar_choice(lv_event_t *event)
 {
     lv_obj_t *chosen = static_cast<lv_obj_t *>(lv_event_get_target(event));
@@ -301,6 +336,7 @@ void on_avatar_choice(lv_event_t *event)
             lv_obj_remove_state(*choice, LV_STATE_CHECKED);
         }
     }
+    update_confirm();
 }
 
 // Confirm's flow opens Chapters; this runs first and makes the new learner the selected one.
@@ -308,6 +344,9 @@ void on_confirm(lv_event_t *)
 {
     if (store.count >= MaxUsers) {
         Serial.println("[Users] Learner list is full");
+        return;
+    }
+    if (!name_typed() || !avatar_chosen()) {
         return;
     }
     User user{};
@@ -319,10 +358,6 @@ void on_confirm(lv_event_t *)
     for (size_t end = strlen(user.name); end > 0 && user.name[end - 1] == ' '; --end) {
         user.name[end - 1] = '\0';
     }
-    if (!user.name[0]) {
-        snprintf(user.name, sizeof(user.name), "Learner %u", static_cast<unsigned>(store.count + 1));
-    }
-    user.avatar = 1;
     for (size_t i = 0; i < AvatarCount; ++i) {
         if (lv_obj_has_state(*avatar_choices[i], LV_STATE_CHECKED)) {
             user.avatar = static_cast<uint8_t>(i + 1);
@@ -344,6 +379,7 @@ void on_creation_load(lv_event_t *)
     for (lv_obj_t *const *choice : avatar_choices) {
         lv_obj_remove_state(*choice, LV_STATE_CHECKED);
     }
+    update_confirm();
     lv_obj_add_flag(creation_keyboard, LV_OBJ_FLAG_HIDDEN);
 }
 
@@ -427,10 +463,13 @@ void users_init()
     lv_obj_add_event_cb(objects.home_next, on_next, LV_EVENT_CLICKED, nullptr);
     lv_obj_add_event_cb(objects.user_rows, on_rows_clicked, LV_EVENT_CLICKED, nullptr);
     lv_obj_add_event_cb(objects.user_search, on_search_changed, LV_EVENT_VALUE_CHANGED, nullptr);
+    lv_obj_add_event_cb(objects.user_name_input, on_name_changed, LV_EVENT_VALUE_CHANGED, nullptr);
     for (lv_obj_t *const *choice : avatar_choices) {
         lv_obj_add_event_cb(*choice, on_avatar_choice, LV_EVENT_CLICKED, nullptr);
     }
     lv_obj_add_event_cb(objects.action_user_creation_confirm_11, on_confirm, LV_EVENT_CLICKED, nullptr);
+    lv_obj_set_style_opa(objects.action_user_creation_confirm_11, LV_OPA_40, LV_PART_MAIN | LV_STATE_DISABLED);
+    update_confirm();
     lv_obj_add_event_cb(objects.user_creation, on_creation_load, LV_EVENT_SCREEN_LOAD_START, nullptr);
     lv_obj_add_event_cb(objects.user_list_view, on_list_load, LV_EVENT_SCREEN_LOAD_START, nullptr);
     lv_obj_add_event_cb(objects.home_page, on_home_load, LV_EVENT_SCREEN_LOADED, nullptr);
