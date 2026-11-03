@@ -9,6 +9,7 @@
 #include "touch.h"
 #include "ui.h"
 #include "landing_screen.h"
+#include "shop_service.h"
 #include "users_service.h"
 #include "screen_backgrounds.h"
 #include "sd_service.h"
@@ -87,6 +88,7 @@ void setup()
     ui_init();
     screen_backgrounds_init();
     users_init();
+    shop_init();
     landing_screen_init();
     sd_service_init();
     wifi_init(sd_service_start);

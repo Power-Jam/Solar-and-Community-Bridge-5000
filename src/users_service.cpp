@@ -41,7 +41,14 @@ struct Store {
     User users[MaxUsers];
 };
 
+// Kept apart from Store so learners saved before the shop existed still load.
+struct Items {
+    uint16_t owned[MaxUsers];  // bit n: shop item n + 1
+    uint16_t worn[MaxUsers];
+};
+
 Store store{};
+Items items{};
 Preferences preferences;
 bool storage_ready = false;
 bool redirect_to_creation = false;
@@ -97,6 +104,13 @@ void save()
     }
 }
 
+void save_items()
+{
+    if (storage_ready && preferences.putBytes("items", &items, sizeof(items)) != sizeof(items)) {
+        Serial.println("[Users] Saving shop items failed");
+    }
+}
+
 void load()
 {
     storage_ready = preferences.begin("users", false);
@@ -118,6 +132,9 @@ void load()
         }
     }
     store.version = StoreVersion;
+    if (preferences.getBytes("items", &items, sizeof(items)) != sizeof(items)) {
+        items = Items{};
+    }
     Serial.printf("[Users] %u learner(s) loaded\n", static_cast<unsigned>(store.count));
 }
 
@@ -366,6 +383,9 @@ void on_confirm(lv_event_t *)
     user.coins = 0;
     user.unlocked_level = FirstLevel;
     store.users[store.count] = user;
+    items.owned[store.count] = 0;
+    items.worn[store.count] = 0;
+    save_items();
     store.current = store.count;
     ++store.count;
     push_to_flow();
@@ -490,4 +510,24 @@ void users_tick()
         shown_version = screen_backgrounds_version();
         refresh();
     }
+}
+
+uint16_t users_owned_items()
+{
+    return store.count ? items.owned[store.current] : 0;
+}
+
+uint16_t users_worn_items()
+{
+    return store.count ? items.worn[store.current] : 0;
+}
+
+void users_set_items(uint16_t owned, uint16_t worn)
+{
+    if (!store.count) {
+        return;
+    }
+    items.owned[store.current] = owned;
+    items.worn[store.current] = worn;
+    save_items();
 }

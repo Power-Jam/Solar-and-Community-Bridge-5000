@@ -26,6 +26,8 @@ struct Background {
 // Every avatar in every size a screen shows it; users_service picks them per learner.
 #define AVATAR_FILES(n)                                                                  "S:/assets/avatars/avatar-" #n "-210.jpg", "S:/assets/avatars/avatar-" #n "-90.jpg",     "S:/assets/avatars/avatar-" #n "-42.jpg", "S:/assets/avatars/avatar-" #n "-78.jpg",      "S:/assets/avatars/avatar-" #n "-86.jpg", "S:/assets/avatars/avatar-" #n "-nav.jpg"
 
+#define SHOP_ITEM_FILE(n) "S:/assets/shop/item-" #n ".jpg"
+
 // "S:" is LV_FS_POSIX_LETTER; LVGL resolves these paths under LV_FS_POSIX_PATH (/sdcard).
 // Files load in this order, so what the user sees first belongs at the top.
 const Background backgrounds[] = {
@@ -71,6 +73,11 @@ const Background backgrounds[] = {
 const char *const preloaded[] = {
     AVATAR_FILES(1), AVATAR_FILES(2), AVATAR_FILES(3), AVATAR_FILES(4), AVATAR_FILES(5),
     AVATAR_FILES(6), AVATAR_FILES(7), AVATAR_FILES(8), AVATAR_FILES(9),
+    // Shop popup: shop_service picks the selected item.
+    SHOP_ITEM_FILE(1), SHOP_ITEM_FILE(2), SHOP_ITEM_FILE(3), SHOP_ITEM_FILE(4),
+    SHOP_ITEM_FILE(5), SHOP_ITEM_FILE(6), SHOP_ITEM_FILE(7), SHOP_ITEM_FILE(8),
+    SHOP_ITEM_FILE(9), SHOP_ITEM_FILE(10), SHOP_ITEM_FILE(11), SHOP_ITEM_FILE(12),
+    "S:/assets/shop/icon-buy.jpg", "S:/assets/shop/icon-wear.jpg",
 };
 
 constexpr size_t MaxFiles =
