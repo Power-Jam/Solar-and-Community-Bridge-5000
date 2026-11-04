@@ -57,6 +57,8 @@
 #define GPS_BAUD 9600
 
 #define TEMP_GPIO_DATA 53
+// 1 = send a mock temperature over LoRa when the DS18B20 has no fresh reading (sensor broken/missing).
+#define TEMP_MOCK_WHEN_MISSING 1
 
 #define AUDIO_FILE "/audio/demo.wav"
 #define AUDIO_GPIO_BCLK 22

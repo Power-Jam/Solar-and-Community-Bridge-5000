@@ -83,7 +83,13 @@ const char *build_uplink(uint8_t kind, Uplink &uplink)
         // FPort 10: int16 temperature in 0.01 C.
         float celsius = 0;
         if (!temp_service_latest(&celsius)) {
+#if TEMP_MOCK_WHEN_MISSING
+            // Mock reading: 21.00 C .. 23.99 C so successive uplinks differ.
+            celsius = 21.0f + static_cast<float>(esp_random() % 300) / 100.0f;
+            Serial.printf("[LoRa] DS18B20 missing, sending mock temperature %.2f C\n", celsius);
+#else
             return "no current DS18B20 reading";
+#endif
         }
         uplink.port = 10;
         put(uplink, scaled<int16_t>(celsius, 100));
