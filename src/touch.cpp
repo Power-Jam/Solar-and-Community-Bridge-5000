@@ -2,8 +2,6 @@
 #include <Wire.h>
 
 #include "board_config.h"
-#include "eez-flow.h"
-#include "screens.h"
 #include "touch.h"
 
 namespace {
@@ -69,17 +67,6 @@ bool write_touch_register(uint16_t reg, uint8_t value)
     return Wire.endTransmission() == 0;
 }
 
-void navigate_on_click(lv_event_t * event)
-{
-    if (lv_event_get_code(event) != LV_EVENT_CLICKED) {
-        return;
-    }
-
-    const int16_t screen_id = static_cast<int16_t>(
-        reinterpret_cast<intptr_t>(lv_event_get_user_data(event)));
-    eez_flow_set_screen(screen_id, LV_SCR_LOAD_ANIM_NONE, 0, 0);
-}
-
 void touch_read(lv_indev_t *, lv_indev_data_t * data)
 {
     static int16_t last_x = 0;
@@ -94,16 +81,6 @@ void touch_read(lv_indev_t *, lv_indev_data_t * data)
     data->point.y = last_y;
     if (pressed && !previous_pressed) {
         Serial.printf("[Touch] Touch %d,%d\n", last_x, last_y);
-    }
-}
-
-void register_navigation(lv_obj_t * button, int16_t screen_id, const char * name)
-{
-    if (button) {
-        lv_obj_add_event_cb(button, navigate_on_click, LV_EVENT_CLICKED,
-                            reinterpret_cast<void *>(static_cast<intptr_t>(screen_id)));
-    } else {
-        Serial.printf("[Touch] %s button was not created\n", name);
     }
 }
 
@@ -191,7 +168,7 @@ bool touch_read_state(int16_t & x, int16_t & y, bool & pressed)
 }
 
 /**
- * @brief Register the touch input and home-screen button navigation with LVGL.
+ * @brief Register the touch input with LVGL.
  */
 void touch_setup_lvgl(lv_display_t * display)
 {
@@ -204,7 +181,4 @@ void touch_setup_lvgl(lv_display_t * display)
     lv_indev_set_type(touch_indev, LV_INDEV_TYPE_POINTER);
     lv_indev_set_display(touch_indev, display);
     lv_indev_set_read_cb(touch_indev, touch_read);
-
-    register_navigation(objects.btn_users, SCREEN_ID_USER_LIST_VIEW, "Users");
-    register_navigation(objects.btn_start, SCREEN_ID_ROADMAP, "Start");
 }
