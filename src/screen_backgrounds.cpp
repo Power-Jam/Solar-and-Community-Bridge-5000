@@ -74,6 +74,7 @@ const Background backgrounds[] = {
     USER_ROW_ARROW(10),
     USER_ROW_ARROW(11),
     USER_ROW_ARROW(12),
+#include "lesson1_backgrounds.inc"
 };
 
 // Loaded after the backgrounds, without a fixed widget.
@@ -93,6 +94,7 @@ const char *const preloaded[] = {
     FIGURE_ITEM_FILE(9), FIGURE_ITEM_FILE(10), FIGURE_ITEM_FILE(11), FIGURE_ITEM_FILE(12),
     FIGURE_ITEM_FILE(10-seated), FIGURE_ITEM_FILE(11-seated), FIGURE_ITEM_FILE(12-seated),
     FIGURE_ITEM_FILE(5-back), "S:/assets/figure/shoes-default.lay", "S:/assets/figure/shoes-default-seated.lay",
+    "S:/assets/lesson1/keep-up.lay",
 };
 
 constexpr size_t MaxFiles =
