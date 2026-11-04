@@ -1,6 +1,7 @@
 #include "lesson_service.h"
 
 #include "eez-flow.h"
+#include "lesson_effects.h"
 #include "screen_backgrounds.h"
 #include "screens.h"
 #include "vars.h"
@@ -239,6 +240,7 @@ void on_tile_clicked(lv_event_t *event)
     }
     if (tile.answer == Answer::Wrong) {
         shake(*tile.object);
+        lesson_effects_wrong(*tile.object);
         return;
     }
     if (tile.story) {
@@ -484,6 +486,50 @@ void start_reward()
     lv_timer_set_repeat_count(reward_timer, 1);
 }
 
+// Every step's panel, in step order; EEZ shows one at a time.
+lv_obj_t *const *const step_panels[] = {
+    &objects.lesson_step_0, &objects.lesson_step_1, &objects.lesson_step_2, &objects.lesson_step_3,
+    &objects.lesson_step_4, &objects.lesson_step_5, &objects.lesson_step_6, &objects.lesson_step_7,
+    &objects.lesson_branch_1_0, &objects.lesson_branch_1_1, &objects.lesson_branch_1_2, &objects.lesson_branch_1_3,
+    &objects.lesson_branch_2_0, &objects.lesson_branch_2_1, &objects.lesson_branch_2_2, &objects.lesson_branch_2_3,
+    &objects.lesson_branch_3_0, &objects.lesson_branch_3_1, &objects.lesson_branch_3_2, &objects.lesson_branch_3_3,
+};
+lv_obj_t *const *tile_objects[sizeof(tiles) / sizeof(tiles[0])];
+
+lv_obj_t *visible_panel()
+{
+    for (lv_obj_t *const *panel : step_panels) {
+        if (*panel && !lv_obj_has_flag(*panel, LV_OBJ_FLAG_HIDDEN)) {
+            return *panel;
+        }
+    }
+    return nullptr;
+}
+
+int32_t story_count()
+{
+    return __builtin_popcount(done_stories);
+}
+
+// How far the learner is: steps 0-7 are the first 40 %, each story the next 20 %.
+int32_t progress(int32_t step)
+{
+    constexpr int32_t IntroShare = 40;
+    constexpr int32_t StoryShare = 20;
+    constexpr int32_t StorySteps = LastStoryStep - CloudAnswer;
+    const int32_t stories = story_count();
+    if (stories == 0) {
+        return (step + 1) * IntroShare / (CloudAnswer + 1);
+    }
+    if (step == CloudQuestion) {
+        return IntroShare + stories * StoryShare;
+    }
+    if (step == CloudAnswer) {
+        return IntroShare + (stories - 1) * StoryShare;
+    }
+    return IntroShare + (stories - 1) * StoryShare + (step - CloudAnswer) * StoryShare / StorySteps;
+}
+
 // Checked every tick on step 7, because a Reload puts the generated picture back.
 void show_pick()
 {
@@ -500,6 +546,10 @@ void show_pick()
 
 void lesson_init()
 {
+    for (size_t i = 0; i < sizeof(tiles) / sizeof(tiles[0]); ++i) {
+        tile_objects[i] = tiles[i].object;
+    }
+    lesson_effects_init(objects.level1, tile_objects, sizeof(tiles) / sizeof(tiles[0]));
     for (const Tile &tile : tiles) {
         lv_obj_add_flag(*tile.object, LV_OBJ_FLAG_CLICKABLE);
         lv_obj_add_event_cb(*tile.object, on_tile_clicked, LV_EVENT_CLICKED, const_cast<Tile *>(&tile));
@@ -516,6 +566,8 @@ void lesson_tick()
             hide_keep_up();
             stop_auto();
             stop_reward();
+            lesson_effects_reveal(nullptr);
+            lesson_effects_progress(0, false);
         }
         on_level_screen = false;
         return;
@@ -547,6 +599,13 @@ void lesson_tick()
             if (all_done_on_question(step)) {
                 start_reward();
             }
+        }
+        if (level == LessonLevel) {
+            lesson_effects_reveal(visible_panel());
+            lesson_effects_progress(progress(step), true);
+        } else {
+            lesson_effects_reveal(nullptr);
+            lesson_effects_progress(0, false);
         }
         if (level == LessonLevel && is_auto(step)) {
             show_next(true);
