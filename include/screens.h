@@ -307,6 +307,14 @@ typedef struct _objects_t {
     lv_obj_t *obj7;
     lv_obj_t *roadmap_background;
     lv_obj_t *obj8;
+    lv_obj_t *level_label_1;
+    lv_obj_t *level_label_2;
+    lv_obj_t *level_label_3;
+    lv_obj_t *level_label_4;
+    lv_obj_t *level_label_5;
+    lv_obj_t *level_label_6;
+    lv_obj_t *level_label_7;
+    lv_obj_t *level_label_8;
     lv_obj_t *obj9;
     lv_obj_t *obj10;
     lv_obj_t *obj11;
