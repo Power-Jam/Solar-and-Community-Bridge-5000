@@ -2,29 +2,27 @@
 
 #include "audio_service.h"
 #include "board_config.h"
-#include "sd_storage.h"
+#include "asset_storage.h"
 
 #include <Arduino.h>
 #include <JPEGDEC.h>
-#include <algorithm>
 #include <cstdio>
 #include <cstring>
-#include <dirent.h>
 #include <esp_heap_caps.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/queue.h>
 #include <freertos/task.h>
 #include <new>
 #include <sys/stat.h>
-#include <vector>
 
 namespace
 {
-constexpr size_t MaxImages = 128;
 constexpr size_t MaxJpegBytes = 4 * 1024 * 1024;
 constexpr size_t MaxAudioBytes = 4 * 1024 * 1024;
 constexpr int MaxImageWidth = 1024;
 constexpr int MaxImageHeight = 600;
+constexpr int MountAttempts = 5;
+constexpr uint32_t MountRetryMs = 500;
 
 struct ImageBuffer {
     uint16_t *pixels;
@@ -38,7 +36,6 @@ struct StatusMessage {
 
 QueueHandle_t command_queue;
 QueueHandle_t status_queue;
-QueueHandle_t image_queue;
 QueueHandle_t background_queue;
 const char *const *background_paths = nullptr;
 size_t background_count = 0;
@@ -68,12 +65,6 @@ void publish_status(const char *text)
     StatusMessage message{};
     strlcpy(message.text, text, sizeof(message.text));
     xQueueOverwrite(status_queue, &message);
-}
-
-void publish_empty_image()
-{
-    const SdImage image{};
-    xQueueSend(image_queue, &image, portMAX_DELAY);
 }
 
 // JPEGDEC holds ~18 KB of buffers: too big for this task's stack and for internal
@@ -246,33 +237,6 @@ void load_audio()
                       : "WAV unavailable / expected 48 kHz stereo PCM in /audio");
 }
 
-bool scan_images(std::vector<String> *images)
-{
-    DIR *directory = opendir("/sdcard/images");
-    if (!directory) {
-        return false;
-    }
-
-    while (images->size() < MaxImages) {
-        struct dirent *entry = readdir(directory);
-        if (!entry) {
-            break;
-        }
-        String name = entry->d_name;
-        String lower = name;
-        lower.toLowerCase();
-        struct stat info{};
-        const String full_path = String("/sdcard/images/") + name;
-        if ((lower.endsWith(".jpg") || lower.endsWith(".jpeg")) &&
-            stat(full_path.c_str(), &info) == 0 && S_ISREG(info.st_mode)) {
-            images->push_back(String("/images/") + name);
-        }
-    }
-    closedir(directory);
-    std::sort(images->begin(), images->end());
-    return true;
-}
-
 void load_backgrounds()
 {
     const uint32_t started = millis();
@@ -299,73 +263,37 @@ void load_backgrounds()
 
 void media_task(void *)
 {
-    SdStorage storage;
-    std::vector<String> images;
+    AssetStorage storage;
     bool mounted = false;
-    size_t index = 0;
     SdCommand command = SdCommand::Retry;
 
     for (;;) {
         if (command == SdCommand::Retry) {
+            // A card that is still powering up, or a bad first contact, can fail the first exchange
+            // (e.g. ESP_ERR_INVALID_CRC on CMD8); a few more tries usually get it.
             mounted = storage.mount();
+            for (int attempt = 2; !mounted && attempt <= MountAttempts; ++attempt) {
+                vTaskDelay(pdMS_TO_TICKS(MountRetryMs));
+                Serial.printf("[SD] Mount attempt %d of %d\n", attempt, MountAttempts);
+                mounted = storage.mount();
+            }
             Serial.printf("[SD] Mount %s / DMA RAM free %u, largest block %u bytes\n",
                           mounted ? "ok" : "failed",
                           static_cast<unsigned>(heap_caps_get_free_size(MALLOC_CAP_DMA)),
                           static_cast<unsigned>(heap_caps_get_largest_free_block(MALLOC_CAP_DMA)));
-            images.clear();
             if (!mounted) {
-                publish_empty_image();
-                publish_status("SD mount failed / check card and wiring");
-            } else if (!scan_images(&images)) {
-                publish_empty_image();
-                publish_status("SD ready / create an /images folder");
-            } else if (images.empty()) {
-                publish_empty_image();
-                publish_status("SD ready / no JPGs in /images");
+                publish_status(ASSETS_ON_SD_CARD ? "SD mount failed / check card and wiring"
+                                                 : "No pictures in flash / run pio run -t uploadfs");
             } else {
-                index = 0;
-                char status[128];
-                snprintf(status, sizeof(status), "SD ready / %u JPG image(s)",
-                         static_cast<unsigned>(images.size()));
-                publish_status(status);
-            }
-            if (mounted) {
+                publish_status(ASSETS_ON_SD_CARD ? "SD ready / loading pictures" : "Flash ready / loading pictures");
                 load_backgrounds();
+                publish_status(ASSETS_ON_SD_CARD ? "SD ready" : "Flash ready");
             }
         } else if (command == SdCommand::PlayAudio) {
             if (mounted) {
                 load_audio();
             } else {
-                publish_status("SD unavailable / tap Retry SD");
-            }
-        } else if (!mounted) {
-            publish_status("SD unavailable / tap Retry SD");
-        } else if (images.empty()) {
-            publish_status("No JPGs found / add files to /images");
-        } else {
-            if (command == SdCommand::Next) {
-                index = (index + 1) % images.size();
-            } else if (command == SdCommand::Previous) {
-                index = (index + images.size() - 1) % images.size();
-            }
-
-            SdImage image{};
-            if (load_image(images[index], &image)) {
-                if (xQueueSend(image_queue, &image, portMAX_DELAY) != pdTRUE) {
-                    free(image.pixels);
-                } else {
-                    char status[128];
-                    snprintf(status, sizeof(status), "%u/%u  %s",
-                             static_cast<unsigned>(index + 1),
-                             static_cast<unsigned>(images.size()),
-                             images[index].substring(String("/images/").length()).c_str());
-                    publish_status(status);
-                }
-            } else {
-                char status[128];
-                snprintf(status, sizeof(status), "Could not decode %s",
-                         images[index].substring(String("/images/").length()).c_str());
-                publish_status(status);
+                publish_status("Storage unavailable / tap Reload");
             }
         }
 
@@ -378,9 +306,8 @@ void sd_service_init()
 {
     command_queue = xQueueCreate(4, sizeof(SdCommand));
     status_queue = xQueueCreate(1, sizeof(StatusMessage));
-    image_queue = xQueueCreate(1, sizeof(SdImage));
     background_queue = xQueueCreate(1, sizeof(SdBackground));
-    if (!command_queue || !status_queue || !image_queue || !background_queue) {
+    if (!command_queue || !status_queue || !background_queue) {
         Serial.println("[SD] SD service queue allocation failed");
         if (command_queue) {
             vQueueDelete(command_queue);
@@ -389,10 +316,6 @@ void sd_service_init()
         if (status_queue) {
             vQueueDelete(status_queue);
             status_queue = nullptr;
-        }
-        if (image_queue) {
-            vQueueDelete(image_queue);
-            image_queue = nullptr;
         }
         if (background_queue) {
             vQueueDelete(background_queue);
@@ -412,11 +335,9 @@ void sd_service_start()
         Serial.println("[SD] SD media task creation failed");
         vQueueDelete(command_queue);
         vQueueDelete(status_queue);
-        vQueueDelete(image_queue);
         vQueueDelete(background_queue);
         command_queue = nullptr;
         status_queue = nullptr;
-        image_queue = nullptr;
         background_queue = nullptr;
     }
 }
@@ -437,12 +358,6 @@ bool sd_service_read_status(char *destination, size_t capacity)
     }
     strlcpy(destination, message.text, capacity);
     return true;
-}
-
-bool sd_service_take_image(SdImage *image)
-{
-    return image_queue && image &&
-           xQueueReceive(image_queue, image, 0) == pdTRUE;
 }
 
 void sd_service_set_backgrounds(const char *const *paths, size_t count)

@@ -9,6 +9,7 @@
 #include "touch.h"
 #include "ui.h"
 #include "landing_screen.h"
+#include "lesson_service.h"
 #include "shop_service.h"
 #include "users_service.h"
 #include "screen_backgrounds.h"
@@ -31,6 +32,7 @@ namespace
             ui_tick();
             users_tick();
             shop_tick();
+            lesson_tick();
             landing_screen_tick();
             screen_backgrounds_tick();
 
@@ -90,9 +92,16 @@ void setup()
     screen_backgrounds_init();
     users_init();
     shop_init();
+    lesson_init();
     landing_screen_init();
     sd_service_init();
+#if ASSETS_ON_SD_CARD
+    // The SD card shares the SDMMC host with the WiFi chip, so it starts once WiFi has set it up.
     wifi_init(sd_service_start);
+#else
+    sd_service_start();
+    wifi_init([] {});
+#endif
     lora_service_init();
     gps_service_init();
     ina_service_init(i2c_ready);

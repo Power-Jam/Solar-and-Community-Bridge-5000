@@ -47,16 +47,12 @@ lv_obj_t *wifi_feedback;
 lv_obj_t *dashboard_status;
 lv_obj_t *ssid_field;
 lv_obj_t *password_field;
-lv_obj_t *sd_image;
-lv_obj_t *sd_image_placeholder;
 lv_obj_t *sd_status_label;
 lv_obj_t *audio_status_label;
 lv_obj_t *lora_status_label;
 lv_obj_t *gps_status_label;
 lv_obj_t *downlink_status_label;
 lv_obj_t *energy_labels[3];
-lv_image_dsc_t sd_image_descriptor{};
-uint16_t *sd_image_pixels;
 lv_obj_t *key_labels[50];
 char ssid[33] = {};
 char password[65] = {};
@@ -170,41 +166,6 @@ void play_audio_button_event(lv_event_t *event)
             lv_label_set_text_fmt(audio_status_label, "Audio: %s", audio_status);
         }
     }
-}
-
-void update_sd_image(const SdImage &image)
-{
-    if (!sd_image) {
-        free(image.pixels);
-        return;
-    }
-
-    lv_image_set_src(sd_image, nullptr);
-    free(sd_image_pixels);
-    sd_image_pixels = nullptr;
-    if (!image.pixels) {
-        sd_image_descriptor.data = nullptr;
-        sd_image_descriptor.data_size = 0;
-        sd_image_descriptor.header.w = 0;
-        sd_image_descriptor.header.h = 0;
-        lv_obj_remove_flag(sd_image_placeholder, LV_OBJ_FLAG_HIDDEN);
-        return;
-    }
-
-    sd_image_pixels = image.pixels;
-
-    sd_image_descriptor.header.magic = LV_IMAGE_HEADER_MAGIC;
-    sd_image_descriptor.header.cf = LV_COLOR_FORMAT_RGB565;
-    sd_image_descriptor.header.flags = 0;
-    sd_image_descriptor.header.w = image.width;
-    sd_image_descriptor.header.h = image.height;
-    sd_image_descriptor.header.stride = image.width * sizeof(uint16_t);
-    sd_image_descriptor.data_size = static_cast<uint32_t>(
-        image.width * image.height * sizeof(uint16_t));
-    sd_image_descriptor.data = reinterpret_cast<const uint8_t *>(sd_image_pixels);
-    lv_image_set_src(sd_image, &sd_image_descriptor);
-    lv_obj_center(sd_image);
-    lv_obj_add_flag(sd_image_placeholder, LV_OBJ_FLAG_HIDDEN);
 }
 
 lv_obj_t *create_button(lv_obj_t *parent, int x, int y, int width, int height,
@@ -441,56 +402,28 @@ extern "C" void landing_screen_init()
     lv_obj_set_style_text_color(dashboard_status, Muted, LV_PART_MAIN);
 
     lv_obj_t *overview = create_card(landing_screen, 24, 210, 640, 366);
-    add_label(overview, 24, 12, "SD CARD / PHOTO VIEWER", Accent,
-              &lv_font_montserrat_20);
-    lv_obj_t *image_view = lv_obj_create(overview);
-    lv_obj_set_pos(image_view, 16, 46);
-    lv_obj_set_size(image_view, 608, 208);
-    lv_obj_remove_flag(image_view, LV_OBJ_FLAG_SCROLLABLE);
-    lv_obj_set_style_bg_color(image_view, Background, LV_PART_MAIN);
-    lv_obj_set_style_bg_opa(image_view, LV_OPA_COVER, LV_PART_MAIN);
-    lv_obj_set_style_border_width(image_view, 0, LV_PART_MAIN);
-    lv_obj_set_style_radius(image_view, 8, LV_PART_MAIN);
-    lv_obj_set_style_pad_all(image_view, 0, LV_PART_MAIN);
-
-    sd_image = lv_image_create(image_view);
-    lv_obj_center(sd_image);
-    sd_image_placeholder = lv_label_create(image_view);
-    lv_label_set_text(sd_image_placeholder, "Add JPG/JPEG files to /images on the SD card");
-    lv_obj_set_style_text_color(sd_image_placeholder, Muted, LV_PART_MAIN);
-    lv_obj_center(sd_image_placeholder);
+    add_label(overview, 24, 12, ASSETS_ON_SD_CARD ? "PICTURES (SD CARD) / AUDIO" : "PICTURES (FLASH) / AUDIO",
+              Accent, &lv_font_montserrat_20);
 
     sd_status_label = lv_label_create(overview);
-    lv_obj_set_pos(sd_status_label, 16, 258);
+    lv_obj_set_pos(sd_status_label, 16, 52);
     lv_obj_set_width(sd_status_label, 608);
     lv_label_set_long_mode(sd_status_label, LV_LABEL_LONG_DOT);
     lv_obj_set_style_text_color(sd_status_label, Muted, LV_PART_MAIN);
     lv_label_set_text(sd_status_label, sd_status);
 
     audio_status_label = lv_label_create(overview);
-    lv_obj_set_pos(audio_status_label, 16, 278);
+    lv_obj_set_pos(audio_status_label, 16, 76);
     lv_obj_set_width(audio_status_label, 608);
     lv_label_set_long_mode(audio_status_label, LV_LABEL_LONG_DOT);
     lv_obj_set_style_text_color(audio_status_label, Muted, LV_PART_MAIN);
     lv_label_set_text_fmt(audio_status_label, "Audio: %s", audio_status);
 
-    const char *sd_labels[] = {"Previous", "Next", "Retry SD", "Play WAV"};
-    for (size_t i = 0; i < 4; ++i) {
-        lv_obj_t *button = create_button(overview, 16 + static_cast<int>(i) * 150,
-                                         302, 134, 40, sd_labels[i],
-                                         i == 1);
-        if (i == 3) {
-            lv_obj_add_event_cb(button, play_audio_button_event,
-                                LV_EVENT_CLICKED, nullptr);
-            continue;
-        }
-        const SdCommand sd_commands[] = {
-            SdCommand::Previous, SdCommand::Next, SdCommand::Retry
-        };
-        lv_obj_add_event_cb(button, sd_button_event, LV_EVENT_CLICKED,
-                            reinterpret_cast<void *>(
-                                static_cast<intptr_t>(sd_commands[i])));
-    }
+    lv_obj_t *reload = create_button(overview, 16, 302, 134, 40, "Reload", false);
+    lv_obj_add_event_cb(reload, sd_button_event, LV_EVENT_CLICKED,
+                        reinterpret_cast<void *>(static_cast<intptr_t>(SdCommand::Retry)));
+    lv_obj_t *play = create_button(overview, 166, 302, 134, 40, "Play WAV", false);
+    lv_obj_add_event_cb(play, play_audio_button_event, LV_EVENT_CLICKED, nullptr);
 
     lv_obj_t *status = create_card(landing_screen, 688, 210, 312, 366);
     add_label(status, 16, 16, "GPS POSITION", Accent, &lv_font_montserrat_20);
@@ -566,9 +499,5 @@ extern "C" void landing_screen_tick()
     if (audio_service_read_status(audio_status, sizeof(audio_status)) &&
         audio_status_label) {
         lv_label_set_text_fmt(audio_status_label, "Audio: %s", audio_status);
-    }
-    SdImage image{};
-    if (sd_service_take_image(&image)) {
-        update_sd_image(image);
     }
 }
