@@ -3,6 +3,7 @@
 #include "eez-flow.h"
 #include "screens.h"
 #include "sd_service.h"
+#include "splash_screen.h"
 
 #include <cstdlib>
 #include <cstring>
@@ -97,8 +98,9 @@ const char *const preloaded[] = {
     "S:/assets/lesson1/keep-up.lay",
 };
 
+// +1 for the splash screen logo.
 constexpr size_t MaxFiles =
-    sizeof(backgrounds) / sizeof(backgrounds[0]) + sizeof(preloaded) / sizeof(preloaded[0]);
+    1 + sizeof(backgrounds) / sizeof(backgrounds[0]) + sizeof(preloaded) / sizeof(preloaded[0]);
 
 struct LoadedFile {
     const char *path;
@@ -187,6 +189,8 @@ void screen_backgrounds_init()
 {
     eez::flow::getLvglImageByNameHook = find_flow_image;
 
+    // The splash screen is up while everything else loads, so its logo goes first.
+    add_file(SPLASH_LOGO_PATH);
     for (const Background &background : backgrounds) {
         add_file(background.path);
     }

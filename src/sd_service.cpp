@@ -12,6 +12,7 @@
 #include <freertos/FreeRTOS.h>
 #include <freertos/queue.h>
 #include <freertos/task.h>
+#include <atomic>
 #include <new>
 #include <sys/stat.h>
 
@@ -39,6 +40,9 @@ QueueHandle_t status_queue;
 QueueHandle_t background_queue;
 const char *const *background_paths = nullptr;
 size_t background_count = 0;
+// Written by the media task, read by the LVGL task.
+std::atomic<size_t> processed_count{0};
+std::atomic<bool> load_finished{false};
 
 int draw_jpeg_block(JPEGDRAW *block)
 {
@@ -246,13 +250,12 @@ void load_backgrounds()
         background.index = i;
         if (!load_image(String(background_paths[i]), &background.image)) {
             Serial.printf("[SD] Could not load background %s\n", background_paths[i]);
-            continue;
-        }
-        if (xQueueSend(background_queue, &background, portMAX_DELAY) != pdTRUE) {
+        } else if (xQueueSend(background_queue, &background, portMAX_DELAY) != pdTRUE) {
             free(background.image.pixels);
-            continue;
+        } else {
+            ++loaded_count;
         }
-        ++loaded_count;
+        processed_count = i + 1;
     }
     Serial.printf("[SD] Loaded %u of %u backgrounds into PSRAM in %u ms / PSRAM free %u bytes\n",
                   static_cast<unsigned>(loaded_count),
@@ -269,6 +272,8 @@ void media_task(void *)
 
     for (;;) {
         if (command == SdCommand::Retry) {
+            load_finished = false;
+            processed_count = 0;
             // A card that is still powering up, or a bad first contact, can fail the first exchange
             // (e.g. ESP_ERR_INVALID_CRC on CMD8); a few more tries usually get it.
             mounted = storage.mount();
@@ -282,11 +287,13 @@ void media_task(void *)
                           static_cast<unsigned>(heap_caps_get_free_size(MALLOC_CAP_DMA)),
                           static_cast<unsigned>(heap_caps_get_largest_free_block(MALLOC_CAP_DMA)));
             if (!mounted) {
+                load_finished = true;
                 publish_status(ASSETS_ON_SD_CARD ? "SD mount failed / check card and wiring"
                                                  : "No pictures in flash / run pio run -t uploadfs");
             } else {
                 publish_status(ASSETS_ON_SD_CARD ? "SD ready / loading pictures" : "Flash ready / loading pictures");
                 load_backgrounds();
+                load_finished = true;
                 publish_status(ASSETS_ON_SD_CARD ? "SD ready" : "Flash ready");
             }
         } else if (command == SdCommand::PlayAudio) {
@@ -370,4 +377,11 @@ bool sd_service_take_background(SdBackground *background)
 {
     return background_queue && background &&
            xQueueReceive(background_queue, background, 0) == pdTRUE;
+}
+
+bool sd_service_load_progress(size_t *processed, size_t *total)
+{
+    *processed = processed_count;
+    *total = background_count;
+    return load_finished;
 }

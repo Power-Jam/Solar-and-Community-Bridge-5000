@@ -13,6 +13,7 @@
 #include "shop_service.h"
 #include "users_service.h"
 #include "screen_backgrounds.h"
+#include "splash_screen.h"
 #include "sd_service.h"
 #include "lora_service.h"
 #include "audio_service.h"
@@ -35,6 +36,7 @@ namespace
             lesson_tick();
             landing_screen_tick();
             screen_backgrounds_tick();
+            splash_screen_tick();
 
             static bool first_handler_reported = false;
             if (!first_handler_reported) {
@@ -94,6 +96,7 @@ void setup()
     shop_init();
     lesson_init();
     landing_screen_init();
+    splash_screen_init();
     sd_service_init();
 #if ASSETS_ON_SD_CARD
     // The SD card shares the SDMMC host with the WiFi chip, so it starts once WiFi has set it up.

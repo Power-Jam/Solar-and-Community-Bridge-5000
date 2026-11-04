@@ -44,5 +44,8 @@ bool sd_service_read_status(char *destination, size_t capacity);
 void sd_service_set_backgrounds(const char *const *paths, size_t count);
 /** The next decoded file, with index into the registered paths. The caller owns image.pixels. */
 bool sd_service_take_background(SdBackground *background);
+/** How many of the registered files have been tried so far (loaded or failed), out of how many.
+ * Returns true once the last load after a mount attempt has finished, also when the mount failed. */
+bool sd_service_load_progress(size_t *processed, size_t *total);
 
 #endif
