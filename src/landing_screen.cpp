@@ -146,11 +146,13 @@ void sd_button_event(lv_event_t *event)
     }
 }
 
-void lora_test_button_event(lv_event_t *event)
+void lora_uplink_button_event(lv_event_t *event)
 {
+    const LoraUplink uplink = static_cast<LoraUplink>(
+        reinterpret_cast<intptr_t>(lv_event_get_user_data(event)));
     if (lv_event_get_code(event) == LV_EVENT_CLICKED &&
-        !lora_service_request_test_uplink()) {
-        strlcpy(lora_status, "LoRaWAN request queue unavailable",
+        !lora_service_request_uplink(uplink)) {
+        strlcpy(lora_status, "LoRaWAN request queue full or unavailable",
                 sizeof(lora_status));
         if (lora_status_label) {
             lv_label_set_text(lora_status_label, lora_status);
@@ -513,10 +515,18 @@ extern "C" void landing_screen_init()
     lv_obj_set_style_text_color(downlink_status_label, Muted, LV_PART_MAIN);
     lv_label_set_text(downlink_status_label, downlink_status);
 
-    lv_obj_t *test_uplink_button = create_button(
-        status, 16, 238, 264, 40, "Send test uplink", false);
-    lv_obj_add_event_cb(test_uplink_button, lora_test_button_event,
-                        LV_EVENT_CLICKED, nullptr);
+    const char *uplink_labels[] = {"Temp", "Energy", "GPS"};
+    const LoraUplink uplinks[] = {LoraUplink::Temperature, LoraUplink::Energy,
+                                  LoraUplink::Gps};
+    for (size_t i = 0; i < 3; ++i) {
+        lv_obj_t *uplink_button = create_button(
+            status, 16 + static_cast<int>(i) * 90, 238, 84, 40,
+            uplink_labels[i], false);
+        lv_obj_add_event_cb(uplink_button, lora_uplink_button_event,
+                            LV_EVENT_CLICKED,
+                            reinterpret_cast<void *>(
+                                static_cast<intptr_t>(uplinks[i])));
+    }
 
     lv_obj_t *button = create_button(status, 16, 290, 264, 48, "Mijn schermen", true);
     lv_obj_add_event_cb(button, open_existing_screens, LV_EVENT_CLICKED, nullptr);

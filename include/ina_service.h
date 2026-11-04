@@ -11,5 +11,7 @@ struct InaReading {
 
 void ina_service_init(bool i2c_available);
 bool ina_service_read(InaReading *destination);
+// Unlike ina_service_read, this leaves the reading in the queue for the UI.
+bool ina_service_latest(InaReading *destination);
 
 #endif

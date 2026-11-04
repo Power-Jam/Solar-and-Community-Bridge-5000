@@ -7,6 +7,7 @@
 #include <freertos/FreeRTOS.h>
 #include <freertos/queue.h>
 #include <freertos/task.h>
+#include <algorithm>
 #include <cstdio>
 
 namespace
@@ -16,6 +17,19 @@ struct GpsStatus {
 };
 
 QueueHandle_t status_queue;
+portMUX_TYPE latest_lock = portMUX_INITIALIZER_UNLOCKED;
+GpsFix latest_fix;
+bool latest_valid;
+
+void publish_fix(const GpsFix *fix)
+{
+    portENTER_CRITICAL(&latest_lock);
+    latest_valid = fix != nullptr;
+    if (fix) {
+        latest_fix = *fix;
+    }
+    portEXIT_CRITICAL(&latest_lock);
+}
 
 void publish_status(const char *text)
 {
@@ -46,6 +60,15 @@ void gps_task(void *)
         if (now - last_report >= 1000) {
             char status[128];
             if (gps.location.isValid() && gps.location.age() < 10000) {
+                GpsFix fix{};
+                fix.latitude = gps.location.lat();
+                fix.longitude = gps.location.lng();
+                fix.satellites_valid =
+                    gps.satellites.isValid() && gps.satellites.age() < 10000;
+                fix.satellites = static_cast<uint8_t>(
+                    std::min<uint32_t>(gps.satellites.value(), 254));
+                publish_fix(&fix);
+
                 const char *satellites =
                     gps.satellites.isValid() && gps.satellites.age() < 10000
                         ? nullptr
@@ -61,9 +84,11 @@ void gps_task(void *)
                              static_cast<unsigned long>(gps.satellites.value()));
                 }
             } else if (gps.passedChecksum() == 0 || now - last_nmea >= 10000) {
+                publish_fix(nullptr);
                 strlcpy(status, "No valid NMEA / check UART and baud rate",
                         sizeof(status));
             } else {
+                publish_fix(nullptr);
                 strlcpy(status, "No fresh fix / move antenna outdoors",
                         sizeof(status));
             }
@@ -115,4 +140,16 @@ bool gps_service_read_status(char *destination, size_t capacity)
     }
     strlcpy(destination, status.text, capacity);
     return true;
+}
+
+bool gps_service_latest(GpsFix *destination)
+{
+    if (!destination) {
+        return false;
+    }
+    portENTER_CRITICAL(&latest_lock);
+    const bool valid = latest_valid;
+    *destination = latest_fix;
+    portEXIT_CRITICAL(&latest_lock);
+    return valid;
 }

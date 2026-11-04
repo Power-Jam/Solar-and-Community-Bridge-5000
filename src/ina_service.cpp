@@ -17,9 +17,16 @@ constexpr uint32_t RetryIntervalMs = 5000;
 constexpr uint32_t LogIntervalMs = 5000;
 
 QueueHandle_t reading_queue;
+portMUX_TYPE latest_lock = portMUX_INITIALIZER_UNLOCKED;
+InaReading latest_reading;
+bool latest_valid;
 
 void publish_reading(const InaReading &reading)
 {
+    portENTER_CRITICAL(&latest_lock);
+    latest_reading = reading;
+    latest_valid = true;
+    portEXIT_CRITICAL(&latest_lock);
     if (reading_queue && xQueueOverwrite(reading_queue, &reading) != pdTRUE) {
         Serial.println("[INA226] Unable to publish INA226 reading");
     }
@@ -101,4 +108,16 @@ bool ina_service_read(InaReading *destination)
 {
     return reading_queue && destination &&
            xQueueReceive(reading_queue, destination, 0) == pdTRUE;
+}
+
+bool ina_service_latest(InaReading *destination)
+{
+    if (!destination) {
+        return false;
+    }
+    portENTER_CRITICAL(&latest_lock);
+    const bool valid = latest_valid;
+    *destination = latest_reading;
+    portEXIT_CRITICAL(&latest_lock);
+    return valid;
 }
