@@ -4,10 +4,19 @@
 #include <stddef.h>
 #include <stdint.h>
 
+enum class SdImageFormat : uint8_t {
+    Rgb565,   // JPG
+    Rgb565A8  // .lay: RGB565 pixels followed by one alpha byte per pixel
+};
+
 struct SdImage {
     uint16_t *pixels;
     uint16_t width;
     uint16_t height;
+    SdImageFormat format;
+    // Where a .lay layer sits on its canvas; 0 for JPGs.
+    int16_t x;
+    int16_t y;
 };
 
 struct SdBackground {
@@ -27,7 +36,9 @@ void sd_service_start();
 bool sd_service_request(SdCommand command);
 bool sd_service_read_status(char *destination, size_t capacity);
 bool sd_service_take_image(SdImage *image);
-/** JPGs to decode into PSRAM after every mount, as card paths like "/assets/nav-bar.jpg". Paths must stay valid. Call before sd_service_start(). */
+/** Files to load into PSRAM after every mount, as card paths like "/assets/nav-bar.jpg": JPGs, or .lay
+ * layers ("LAY1", little-endian uint16 x, y, width, height, RGB565 pixels, then alpha bytes).
+ * Paths must stay valid. Call before sd_service_start(). */
 void sd_service_set_backgrounds(const char *const *paths, size_t count);
 /** The next decoded file, with index into the registered paths. The caller owns image.pixels. */
 bool sd_service_take_background(SdBackground *background);
