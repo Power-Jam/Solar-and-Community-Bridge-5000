@@ -24,9 +24,16 @@ struct Background {
 #define USER_ROW_ARROW(n) {&objects.user_row_##n##_arrow, "S:/assets/arrow-row.jpg"}
 
 // Every avatar in every size a screen shows it; users_service picks them per learner.
-#define AVATAR_FILES(n)                                                                  "S:/assets/avatars/avatar-" #n "-210.jpg", "S:/assets/avatars/avatar-" #n "-90.jpg",     "S:/assets/avatars/avatar-" #n "-42.jpg", "S:/assets/avatars/avatar-" #n "-78.jpg",      "S:/assets/avatars/avatar-" #n "-86.jpg", "S:/assets/avatars/avatar-" #n "-nav.jpg"
+#define AVATAR_FILES(n)                                                                  "S:/assets/avatars/avatar-" #n "-210.jpg", "S:/assets/avatars/avatar-" #n "-90.jpg",     "S:/assets/avatars/avatar-" #n "-42.jpg", "S:/assets/avatars/avatar-" #n "-nav.jpg"
 
-#define SHOP_ITEM_FILE(n) "S:/assets/shop/item-" #n ".jpg"
+// Dress-up figure layers (see shop_service); every avatar's are kept, so switching learners is instant.
+#define FIGURE_AVATAR_FILES(n)                                                              \
+    "S:/assets/figure/base-" #n ".lay", "S:/assets/figure/hair-back-" #n ".lay",          \
+    "S:/assets/figure/hair-back-" #n "-hat.lay", "S:/assets/figure/hair-front-" #n ".lay", \
+    "S:/assets/figure/hair-front-" #n "-hat.lay"
+#define FIGURE_ITEM_FILE(name) "S:/assets/figure/item-" #name ".lay"
+
+#define SHOP_ITEM_FILE(n) "S:/assets/shop/item-" #n ".jpg", "S:/assets/shop/item-" #n "-outfit.jpg"
 
 // "S:" is LV_FS_POSIX_LETTER; LVGL resolves these paths under LV_FS_POSIX_PATH (/sdcard).
 // Files load in this order, so what the user sees first belongs at the top.
@@ -73,11 +80,19 @@ const Background backgrounds[] = {
 const char *const preloaded[] = {
     AVATAR_FILES(1), AVATAR_FILES(2), AVATAR_FILES(3), AVATAR_FILES(4), AVATAR_FILES(5),
     AVATAR_FILES(6), AVATAR_FILES(7), AVATAR_FILES(8), AVATAR_FILES(9),
-    // Shop popup: shop_service picks the selected item.
+    // Shop popup and profile outfit: shop_service picks the items.
     SHOP_ITEM_FILE(1), SHOP_ITEM_FILE(2), SHOP_ITEM_FILE(3), SHOP_ITEM_FILE(4),
     SHOP_ITEM_FILE(5), SHOP_ITEM_FILE(6), SHOP_ITEM_FILE(7), SHOP_ITEM_FILE(8),
     SHOP_ITEM_FILE(9), SHOP_ITEM_FILE(10), SHOP_ITEM_FILE(11), SHOP_ITEM_FILE(12),
-    "S:/assets/shop/icon-buy.jpg", "S:/assets/shop/icon-wear.jpg",
+    "S:/assets/shop/icon-buy.jpg", "S:/assets/shop/icon-wear.jpg", "S:/assets/shop/outfit-empty.jpg",
+    FIGURE_AVATAR_FILES(1), FIGURE_AVATAR_FILES(2), FIGURE_AVATAR_FILES(3), FIGURE_AVATAR_FILES(4),
+    FIGURE_AVATAR_FILES(5), FIGURE_AVATAR_FILES(6), FIGURE_AVATAR_FILES(7), FIGURE_AVATAR_FILES(8),
+    FIGURE_AVATAR_FILES(9),
+    FIGURE_ITEM_FILE(1), FIGURE_ITEM_FILE(2), FIGURE_ITEM_FILE(3), FIGURE_ITEM_FILE(4),
+    FIGURE_ITEM_FILE(5), FIGURE_ITEM_FILE(6), FIGURE_ITEM_FILE(7), FIGURE_ITEM_FILE(8),
+    FIGURE_ITEM_FILE(9), FIGURE_ITEM_FILE(10), FIGURE_ITEM_FILE(11), FIGURE_ITEM_FILE(12),
+    FIGURE_ITEM_FILE(10-seated), FIGURE_ITEM_FILE(11-seated), FIGURE_ITEM_FILE(12-seated),
+    FIGURE_ITEM_FILE(5-back), "S:/assets/figure/shoes-default.lay", "S:/assets/figure/shoes-default-seated.lay",
 };
 
 constexpr size_t MaxFiles =
@@ -86,6 +101,8 @@ constexpr size_t MaxFiles =
 struct LoadedFile {
     const char *path;
     uint16_t *pixels;
+    int16_t x;
+    int16_t y;
     lv_image_dsc_t descriptor;
 };
 
@@ -135,15 +152,19 @@ void apply_loaded_file(const SdBackground &loaded)
     LoadedFile &file = files[loaded.index];
     uint16_t *old_pixels = file.pixels;
 
+    const bool alpha = loaded.image.format == SdImageFormat::Rgb565A8;
     file.pixels = loaded.image.pixels;
+    file.x = loaded.image.x;
+    file.y = loaded.image.y;
     file.descriptor.header.magic = LV_IMAGE_HEADER_MAGIC;
-    file.descriptor.header.cf = LV_COLOR_FORMAT_RGB565;
+    file.descriptor.header.cf = alpha ? LV_COLOR_FORMAT_RGB565A8 : LV_COLOR_FORMAT_RGB565;
     file.descriptor.header.flags = 0;
     file.descriptor.header.w = loaded.image.width;
     file.descriptor.header.h = loaded.image.height;
+    // RGB565A8 keeps its alpha bytes after the colour plane; the stride covers the colours only.
     file.descriptor.header.stride = loaded.image.width * sizeof(uint16_t);
     file.descriptor.data_size = static_cast<uint32_t>(
-        loaded.image.width * loaded.image.height * sizeof(uint16_t));
+        loaded.image.width * loaded.image.height * (sizeof(uint16_t) + (alpha ? 1 : 0)));
     file.descriptor.data = reinterpret_cast<const uint8_t *>(file.pixels);
 
     for (const Background &background : backgrounds) {
@@ -177,6 +198,17 @@ const void *screen_backgrounds_image(const char *path)
 {
     const LoadedFile *file = find_file(path);
     return file && file->pixels ? &file->descriptor : nullptr;
+}
+
+const void *screen_backgrounds_layer(const char *path, int16_t *x, int16_t *y)
+{
+    const LoadedFile *file = find_file(path);
+    if (!file || !file->pixels) {
+        return nullptr;
+    }
+    *x = file->x;
+    *y = file->y;
+    return &file->descriptor;
 }
 
 uint32_t screen_backgrounds_version()

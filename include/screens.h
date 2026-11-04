@@ -322,8 +322,21 @@ typedef struct _objects_t {
     lv_obj_t *shop_button;
     lv_obj_t *user_selection;
     lv_obj_t *profile_name;
-    lv_obj_t *profile_avatar;
+    lv_obj_t *profile_figure;
+    lv_obj_t *outfit_item_1;
+    lv_obj_t *outfit_item_2;
+    lv_obj_t *outfit_item_3;
+    lv_obj_t *outfit_item_4;
+    lv_obj_t *outfit_item_5;
+    lv_obj_t *outfit_item_6;
+    lv_obj_t *outfit_label_1;
+    lv_obj_t *outfit_label_2;
+    lv_obj_t *outfit_label_3;
+    lv_obj_t *outfit_label_4;
+    lv_obj_t *outfit_label_5;
+    lv_obj_t *outfit_label_6;
     lv_obj_t *shop_background;
+    lv_obj_t *shop_figure;
     lv_obj_t *shop_overlay;
     lv_obj_t *overlay_buy_wear;
     lv_obj_t *overlay_item;
@@ -334,7 +347,6 @@ typedef struct _objects_t {
     lv_obj_t *close_button;
     lv_obj_t *overlay_balance;
     lv_obj_t *overlay_price;
-    lv_obj_t *shop_avatar;
 } objects_t;
 
 extern objects_t objects;

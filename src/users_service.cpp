@@ -240,8 +240,6 @@ void refresh()
         set_first_name(objects.home_name_next, next.name);
         show_image(objects.home_avatar_next, next.avatar, "90");
         lv_label_set_text(objects.profile_name, user->name);
-        show_image(objects.profile_avatar, user->avatar, "78");
-        show_image(objects.shop_avatar, user->avatar, "86");
         for (lv_obj_t *const *avatar : nav_avatars) {
             show_image(*avatar, user->avatar, "nav");
         }
@@ -249,8 +247,6 @@ void refresh()
         lv_label_set_text(objects.home_name_center, "");
         lv_label_set_text(objects.profile_name, "");
         set_hidden(objects.home_avatar_center, true);
-        set_hidden(objects.profile_avatar, true);
-        set_hidden(objects.shop_avatar, true);
         for (lv_obj_t *const *avatar : nav_avatars) {
             set_hidden(*avatar, true);
         }
@@ -510,6 +506,11 @@ void users_tick()
         shown_version = screen_backgrounds_version();
         refresh();
     }
+}
+
+uint8_t users_current_avatar()
+{
+    return store.count ? store.users[store.current].avatar : 0;
 }
 
 uint16_t users_owned_items()

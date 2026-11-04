@@ -30,6 +30,7 @@ namespace
         while (true) {
             ui_tick();
             users_tick();
+            shop_tick();
             landing_screen_tick();
             screen_backgrounds_tick();
 

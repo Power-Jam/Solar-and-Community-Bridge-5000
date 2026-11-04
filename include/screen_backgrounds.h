@@ -8,5 +8,7 @@ void screen_backgrounds_init();
 void screen_backgrounds_tick();
 /** The PSRAM copy of an "S:/..." file from the load list, or nullptr while it is not loaded yet. */
 const void *screen_backgrounds_image(const char *path);
+/** A loaded .lay layer, and where it sits on its canvas; nullptr until it has loaded. */
+const void *screen_backgrounds_layer(const char *path, int16_t *x, int16_t *y);
 /** Changes every time a file finished loading, so callers know when to ask screen_backgrounds_image() again. */
 uint32_t screen_backgrounds_version();

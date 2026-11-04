@@ -88,8 +88,44 @@ JPEGDEC *jpeg_decoder()
     return decoder;
 }
 
+// Layers are stored ready to draw, so they only need reading.
+bool load_layer(const String &path, SdImage *result)
+{
+    const String full_path = String("/sdcard") + path;
+    FILE *file = fopen(full_path.c_str(), "rb");
+    uint8_t header[12];
+    bool ok = file && fread(header, 1, sizeof(header), file) == sizeof(header) &&
+              memcmp(header, "LAY1", 4) == 0;
+    const auto field = [&header](int index) {
+        return static_cast<uint16_t>(header[4 + index * 2] | (header[5 + index * 2] << 8));
+    };
+    const size_t width = ok ? field(2) : 0;
+    const size_t height = ok ? field(3) : 0;
+    ok = ok && width > 0 && height > 0 && width <= MaxImageWidth && height <= MaxImageHeight;
+    const size_t size = width * height * 3;
+    auto *pixels = ok ? static_cast<uint16_t *>(ps_malloc(size)) : nullptr;
+    ok = pixels && fread(pixels, 1, size, file) == size;
+    if (file) {
+        fclose(file);
+    }
+    if (!ok) {
+        free(pixels);
+        return false;
+    }
+    result->pixels = pixels;
+    result->width = static_cast<uint16_t>(width);
+    result->height = static_cast<uint16_t>(height);
+    result->format = SdImageFormat::Rgb565A8;
+    result->x = static_cast<int16_t>(field(0));
+    result->y = static_cast<int16_t>(field(1));
+    return true;
+}
+
 bool load_image(const String &path, SdImage *result)
 {
+    if (path.endsWith(".lay")) {
+        return load_layer(path, result);
+    }
     const uint32_t read_started = millis();
     const String full_path = String("/sdcard") + path;
     FILE *file = fopen(full_path.c_str(), "rb");
@@ -151,6 +187,9 @@ bool load_image(const String &path, SdImage *result)
     result->pixels = image.pixels;
     result->width = static_cast<uint16_t>(image.width);
     result->height = static_cast<uint16_t>(image.height);
+    result->format = SdImageFormat::Rgb565;
+    result->x = 0;
+    result->y = 0;
     Serial.printf("[SD] %s: %u bytes, read %u ms, decode %u ms\n", path.c_str(),
                   static_cast<unsigned>(size),
                   static_cast<unsigned>(decode_started - read_started),

@@ -36,7 +36,20 @@ const Item shop_items[ItemCount] = {
     SHOP_ITEM(9, Scarf), SHOP_ITEM(10, Feet), SHOP_ITEM(11, Feet), SHOP_ITEM(12, Feet),
 };
 
+// The profile's Outfit preview has one slot per group, in Group order.
+constexpr size_t OutfitSlots = Feet + 1;
+lv_obj_t *const *outfit_images[OutfitSlots] = {
+    &objects.outfit_item_1, &objects.outfit_item_2, &objects.outfit_item_3,
+    &objects.outfit_item_4, &objects.outfit_item_5, &objects.outfit_item_6,
+};
+
+// The dress-up figure on Profile and Shop: layers drawn bottom to top, all on one 200x300 canvas.
+enum FigureLayer : uint8_t { BagBack, HairBack, Base, Shoes, TopLayer, NeckLayer, ScarfLayer, BagFront, HairFront, Hat, LayerCount };
+constexpr uint8_t SeatedAvatar = 5;  // uses a wheelchair, so its shoes sit higher
+lv_obj_t *figure_layers[2][LayerCount];
+
 size_t selected = 0;
+uint32_t shown_files = UINT32_MAX;
 
 uint16_t item_bit(size_t item)
 {
@@ -48,11 +61,16 @@ int32_t coins()
     return eez::flow::getGlobalVariable(FLOW_GLOBAL_VARIABLE_CURRENT_COINS).getInt32();
 }
 
-// Shows the copy in PSRAM once it has loaded, and has LVGL read the card until then.
+// Shows the copy in PSRAM; until it has loaded (or without a card) the image stays hidden.
 void set_sd_image(lv_obj_t *image, const char *path)
 {
     const void *loaded = screen_backgrounds_image(path);
-    lv_image_set_src(image, loaded ? loaded : path);
+    if (loaded) {
+        lv_image_set_src(image, loaded);
+        lv_obj_remove_flag(image, LV_OBJ_FLAG_HIDDEN);
+    } else {
+        lv_obj_add_flag(image, LV_OBJ_FLAG_HIDDEN);
+    }
 }
 
 void refresh_cards()
@@ -66,6 +84,78 @@ void refresh_cards()
             lv_obj_remove_flag(badge, LV_OBJ_FLAG_HIDDEN);
         } else {
             lv_obj_add_flag(badge, LV_OBJ_FLAG_HIDDEN);
+        }
+    }
+}
+
+void refresh_outfit()
+{
+    for (lv_obj_t *const *image : outfit_images) {
+        set_sd_image(*image, "S:/assets/shop/outfit-empty.jpg");
+    }
+    const uint16_t worn = users_worn_items();
+    for (size_t i = 0; i < ItemCount; ++i) {
+        if (worn & item_bit(i)) {
+            char path[44];
+            snprintf(path, sizeof(path), "S:/assets/shop/item-%u-outfit.jpg", static_cast<unsigned>(i + 1));
+            set_sd_image(*outfit_images[shop_items[i].group], path);
+        }
+    }
+}
+
+// The worn item of a group, or -1.
+int worn_in(Group group)
+{
+    const uint16_t worn = users_worn_items();
+    for (size_t i = 0; i < ItemCount; ++i) {
+        if (shop_items[i].group == group && (worn & item_bit(i))) {
+            return static_cast<int>(i);
+        }
+    }
+    return -1;
+}
+
+void refresh_figures()
+{
+    const unsigned avatar = users_current_avatar();
+    const bool seated = avatar == SeatedAvatar;
+    const char *const under_hat = worn_in(Head) >= 0 ? "-hat" : "";
+    char paths[LayerCount][44] = {};
+    if (avatar) {
+        const auto item = [&paths](FigureLayer layer, int index, const char *suffix) {
+            if (index >= 0) {
+                snprintf(paths[layer], sizeof(paths[layer]), "S:/assets/figure/item-%d%s.lay", index + 1, suffix);
+            }
+        };
+        const int bag = worn_in(Back);
+        item(BagBack, bag, "-back");
+        item(BagFront, bag, "");
+        snprintf(paths[HairBack], sizeof(paths[HairBack]), "S:/assets/figure/hair-back-%u%s.lay", avatar, under_hat);
+        snprintf(paths[Base], sizeof(paths[Base]), "S:/assets/figure/base-%u.lay", avatar);
+        const int shoes = worn_in(Feet);
+        if (shoes >= 0) {
+            item(Shoes, shoes, seated ? "-seated" : "");
+        } else {
+            snprintf(paths[Shoes], sizeof(paths[Shoes]), "S:/assets/figure/shoes-default%s.lay", seated ? "-seated" : "");
+        }
+        item(TopLayer, worn_in(Top), "");
+        item(NeckLayer, worn_in(Neck), "");
+        item(ScarfLayer, worn_in(Scarf), "");
+        snprintf(paths[HairFront], sizeof(paths[HairFront]), "S:/assets/figure/hair-front-%u%s.lay", avatar, under_hat);
+        item(Hat, worn_in(Head), "");
+    }
+    for (lv_obj_t *(&layers)[LayerCount] : figure_layers) {
+        for (size_t layer = 0; layer < LayerCount; ++layer) {
+            int16_t x = 0;
+            int16_t y = 0;
+            const void *image = paths[layer][0] ? screen_backgrounds_layer(paths[layer], &x, &y) : nullptr;
+            if (image) {
+                lv_image_set_src(layers[layer], image);
+                lv_obj_set_pos(layers[layer], x, y);
+                lv_obj_remove_flag(layers[layer], LV_OBJ_FLAG_HIDDEN);
+            } else {
+                lv_obj_add_flag(layers[layer], LV_OBJ_FLAG_HIDDEN);
+            }
         }
     }
 }
@@ -137,12 +227,20 @@ void on_action(lv_event_t *)
     }
     users_set_items(owned, worn);
     refresh_cards();
+    refresh_figures();
     close_popup();
 }
 
 void on_shop_load(lv_event_t *)
 {
     refresh_cards();
+    refresh_figures();
+}
+
+void on_profile_load(lv_event_t *)
+{
+    refresh_outfit();
+    refresh_figures();
 }
 }
 
@@ -156,5 +254,26 @@ void shop_init()
     lv_obj_add_event_cb(objects.overlay_action, on_action, LV_EVENT_CLICKED, nullptr);
     lv_obj_set_style_opa(objects.overlay_action, LV_OPA_50, LV_PART_MAIN | LV_STATE_DISABLED);
     lv_obj_add_event_cb(objects.shop_page, on_shop_load, LV_EVENT_SCREEN_LOAD_START, nullptr);
+    lv_obj_add_event_cb(objects.profile_page, on_profile_load, LV_EVENT_SCREEN_LOAD_START, nullptr);
+    lv_obj_t *const figures[] = {objects.profile_figure, objects.shop_figure};
+    for (size_t f = 0; f < 2; ++f) {
+        lv_obj_remove_flag(figures[f], LV_OBJ_FLAG_SCROLLABLE);
+        for (lv_obj_t *&layer : figure_layers[f]) {
+            layer = lv_image_create(figures[f]);
+            lv_obj_add_flag(layer, LV_OBJ_FLAG_HIDDEN);
+        }
+    }
     refresh_cards();
+    refresh_outfit();
+    refresh_figures();
+}
+
+void shop_tick()
+{
+    // Pictures arrive from the SD card after start-up; show them as they do.
+    if (screen_backgrounds_version() != shown_files) {
+        shown_files = screen_backgrounds_version();
+        refresh_outfit();
+        refresh_figures();
+    }
 }
