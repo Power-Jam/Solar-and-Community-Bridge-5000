@@ -45,6 +45,7 @@ namespace
             }
 
             const uint32_t next_timer_ms = lv_timer_handler();
+            display_backlight_tick(display);
             static bool first_return_reported = false;
             if (!first_return_reported) {
                 Serial.printf("[LVGL] LVGL timer handler returned; stack high-water mark: %u bytes\n",

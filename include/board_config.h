@@ -7,6 +7,10 @@
 #define LCD_GPIO_BLIGHT 31
 #define BLIGHT_PWM_HZ 30000
 #define BLIGHT_ON_LEVEL 1
+// Backlight brightness in percent: normal use, and after BLIGHT_DIM_AFTER_MS without a touch.
+#define BLIGHT_ACTIVE_PERCENT 40
+#define BLIGHT_DIM_PERCENT 10
+#define BLIGHT_DIM_AFTER_MS 60000
 
 #define TOUCH_GPIO_RST 40
 #define TOUCH_GPIO_INT 42

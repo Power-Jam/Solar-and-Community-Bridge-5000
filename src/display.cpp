@@ -8,6 +8,20 @@
 namespace
 {
 constexpr size_t LVGL_BUFFER_ROWS = 20;
+constexpr uint8_t BLIGHT_PWM_BITS = 10;
+
+bool backlight_pwm = false;
+bool backlight_dimmed = false;
+
+void set_backlight_percent(uint8_t percent)
+{
+    constexpr uint32_t max_duty = (1U << BLIGHT_PWM_BITS) - 1;
+    uint32_t duty = max_duty * percent / 100;
+    if (!BLIGHT_ON_LEVEL) {
+        duty = max_duty - duty;
+    }
+    ledcWrite(LCD_GPIO_BLIGHT, duty);
+}
 
 Arduino_ESP32DSIPanel panel_bus(
     LCD_HPW, LCD_HBP, LCD_HFP, LCD_VPW, LCD_VBP, LCD_VFP,
@@ -50,7 +64,13 @@ lv_display_t *display_init()
 
     panel.setTextWrap(false);
     panel.fillScreen(0);
-    digitalWrite(LCD_GPIO_BLIGHT, HIGH);
+    backlight_pwm = ledcAttach(LCD_GPIO_BLIGHT, BLIGHT_PWM_HZ, BLIGHT_PWM_BITS);
+    if (backlight_pwm) {
+        set_backlight_percent(BLIGHT_ACTIVE_PERCENT);
+    } else {
+        Serial.println("[Display] Backlight PWM unavailable; running at full brightness");
+        digitalWrite(LCD_GPIO_BLIGHT, BLIGHT_ON_LEVEL);
+    }
 
     lv_init();
     lv_log_register_print_cb([](lv_log_level_t, const char *message) { Serial.printf("[LVGL] %s", message); });
@@ -79,4 +99,36 @@ lv_display_t *display_init()
     lv_display_set_buffers(display, draw_buffer_0, draw_buffer_1, draw_buffer_size,
                            LV_DISPLAY_RENDER_MODE_PARTIAL);
     return display;
+}
+
+void display_backlight_tick(lv_display_t *display)
+{
+    if (!backlight_pwm || !display) {
+        return;
+    }
+    // LVGL resets the inactive time on every touch, so a touch brings the brightness back.
+    const bool dim = lv_display_get_inactive_time(display) >= BLIGHT_DIM_AFTER_MS;
+    if (dim == backlight_dimmed) {
+        return;
+    }
+    backlight_dimmed = dim;
+    const uint8_t percent = dim ? BLIGHT_DIM_PERCENT : BLIGHT_ACTIVE_PERCENT;
+    set_backlight_percent(percent);
+    Serial.printf("[Display] Backlight %u%%\n", static_cast<unsigned>(percent));
+}
+
+bool display_backlight_wake(lv_display_t *display)
+{
+    if (!backlight_pwm || !backlight_dimmed) {
+        return false;
+    }
+    backlight_dimmed = false;
+    set_backlight_percent(BLIGHT_ACTIVE_PERCENT);
+    // The wake touch is not passed to LVGL, so restart the inactivity timer here.
+    if (display) {
+        lv_display_trigger_activity(display);
+    }
+    Serial.printf("[Display] Backlight %u%% (woken by touch)\n",
+                  static_cast<unsigned>(BLIGHT_ACTIVE_PERCENT));
+    return true;
 }

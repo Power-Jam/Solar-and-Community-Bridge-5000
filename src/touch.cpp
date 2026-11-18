@@ -2,6 +2,7 @@
 #include <Wire.h>
 
 #include "board_config.h"
+#include "display.h"
 #include "touch.h"
 
 namespace {
@@ -67,21 +68,27 @@ bool write_touch_register(uint16_t reg, uint8_t value)
     return Wire.endTransmission() == 0;
 }
 
-void touch_read(lv_indev_t *, lv_indev_data_t * data)
+void touch_read(lv_indev_t * indev, lv_indev_data_t * data)
 {
     static int16_t last_x = 0;
     static int16_t last_y = 0;
     static bool was_pressed = false;
+    // A touch that wakes the dimmed screen is held back from LVGL until the finger lifts.
+    static bool waking = false;
     const bool previous_pressed = was_pressed;
     bool pressed = was_pressed;
     touch_read_state(last_x, last_y, pressed);
     was_pressed = pressed;
-    data->state = pressed ? LV_INDEV_STATE_PRESSED : LV_INDEV_STATE_RELEASED;
-    data->point.x = last_x;
-    data->point.y = last_y;
     if (pressed && !previous_pressed) {
         Serial.printf("[Touch] Touch %d,%d\n", last_x, last_y);
+        waking = display_backlight_wake(lv_indev_get_display(indev));
     }
+    if (!pressed) {
+        waking = false;
+    }
+    data->state = pressed && !waking ? LV_INDEV_STATE_PRESSED : LV_INDEV_STATE_RELEASED;
+    data->point.x = last_x;
+    data->point.y = last_y;
 }
 
 }
