@@ -3,7 +3,7 @@
 // mqttdashboard "solar" profile expects. All values are big-endian.
 //
 //   FPort 10  int16 temperature (0.01 C)
-//   FPort 20  uint16 voltage (mV), int32 current (uA), uint32 power (mW)
+//   FPort 20  uint8 battery charge (%)
 //   FPort 40  int32 latitude, int32 longitude (1e-7 deg), uint8 satellites (255 = unknown)
 
 function readUint(bytes, offset, length) {
@@ -31,10 +31,8 @@ function decodeUplink(input) {
       return { data: data };
 
     case 20:
-      if (bytes.length !== 10) break;
-      data.voltage_v = readUint(bytes, 0, 2) / 1000;
-      data.current_a = readInt(bytes, 2, 4) / 1000000;
-      data.power_w = readUint(bytes, 6, 4) / 1000;
+      if (bytes.length !== 1) break;
+      data.battery_percent = bytes[0];
       return { data: data };
 
     case 40:

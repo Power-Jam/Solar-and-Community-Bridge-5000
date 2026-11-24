@@ -7,6 +7,8 @@
 #include "lora_service.h"
 #include "gps_service.h"
 #include "ina_service.h"
+#include "temp_service.h"
+#include "board_config.h"
 #include "audio_service.h"
 #include "wifi_service.h"
 
@@ -47,9 +49,9 @@ lv_obj_t *wifi_feedback;
 lv_obj_t *dashboard_status;
 lv_obj_t *ssid_field;
 lv_obj_t *password_field;
-lv_obj_t *sd_status_label;
-lv_obj_t *audio_status_label;
 lv_obj_t *lora_status_label;
+lv_obj_t *temperature_label;
+lv_obj_t *temperature_status_label;
 lv_obj_t *gps_status_label;
 lv_obj_t *downlink_status_label;
 lv_obj_t *energy_labels[INA_SENSOR_COUNT][3];
@@ -130,20 +132,6 @@ void update_wifi_fields()
     }
 }
 
-void sd_button_event(lv_event_t *event)
-{
-    if (lv_event_get_code(event) == LV_EVENT_CLICKED) {
-        const SdCommand command = static_cast<SdCommand>(
-            reinterpret_cast<intptr_t>(lv_event_get_user_data(event)));
-        if (!sd_service_request(command)) {
-            strlcpy(sd_status, "SD request queue full", sizeof(sd_status));
-            if (sd_status_label) {
-                lv_label_set_text(sd_status_label, sd_status);
-            }
-        }
-    }
-}
-
 void lora_uplink_button_event(lv_event_t *event)
 {
     const LoraUplink uplink = static_cast<LoraUplink>(
@@ -154,18 +142,6 @@ void lora_uplink_button_event(lv_event_t *event)
                 sizeof(lora_status));
         if (lora_status_label) {
             lv_label_set_text(lora_status_label, lora_status);
-        }
-    }
-}
-
-void play_audio_button_event(lv_event_t *event)
-{
-    if (lv_event_get_code(event) == LV_EVENT_CLICKED &&
-        !sd_service_request(SdCommand::PlayAudio)) {
-        strlcpy(audio_status, "Unable to queue audio request",
-                sizeof(audio_status));
-        if (audio_status_label) {
-            lv_label_set_text_fmt(audio_status_label, "Audio: %s", audio_status);
         }
     }
 }
@@ -429,50 +405,44 @@ extern "C" void landing_screen_init()
     lv_obj_set_width(dashboard_status, 960);
     lv_obj_set_style_text_color(dashboard_status, Muted, LV_PART_MAIN);
 
-    lv_obj_t *overview = create_card(landing_screen, 24, 210, 640, 366);
-    add_label(overview, 24, 12, ASSETS_ON_SD_CARD ? "PICTURES (SD CARD) / AUDIO" : "PICTURES (FLASH) / AUDIO",
-              Accent, &lv_font_montserrat_20);
+    // Bottom row, over the full width: temperature, GPS, and LoRaWAN with the buttons.
+    constexpr int BottomY = 222;
+    constexpr int BottomHeight = 576 - BottomY;
 
-    sd_status_label = lv_label_create(overview);
-    lv_obj_set_pos(sd_status_label, 16, 52);
-    lv_obj_set_width(sd_status_label, 608);
-    lv_label_set_long_mode(sd_status_label, LV_LABEL_LONG_DOT);
-    lv_obj_set_style_text_color(sd_status_label, Muted, LV_PART_MAIN);
-    lv_label_set_text(sd_status_label, sd_status);
+    lv_obj_t *temperature = create_card(landing_screen, 24, BottomY, 312, BottomHeight);
+    add_label(temperature, 16, 16, "TEMPERATURE", Accent, &lv_font_montserrat_20);
+    temperature_label = lv_label_create(temperature);
+    lv_obj_set_style_text_color(temperature_label, Text, LV_PART_MAIN);
+    lv_obj_set_style_text_font(temperature_label, &lv_font_montserrat_48, LV_PART_MAIN);
+    lv_label_set_text(temperature_label, "-- \xC2\xB0" "C");
+    lv_obj_align(temperature_label, LV_ALIGN_CENTER, 0, -6);
+    temperature_status_label = lv_label_create(temperature);
+    lv_obj_set_style_text_color(temperature_status_label, Muted, LV_PART_MAIN);
+    lv_label_set_text(temperature_status_label, "Waiting for DS18B20...");
+    lv_obj_align(temperature_status_label, LV_ALIGN_CENTER, 0, 44);
 
-    audio_status_label = lv_label_create(overview);
-    lv_obj_set_pos(audio_status_label, 16, 76);
-    lv_obj_set_width(audio_status_label, 608);
-    lv_label_set_long_mode(audio_status_label, LV_LABEL_LONG_DOT);
-    lv_obj_set_style_text_color(audio_status_label, Muted, LV_PART_MAIN);
-    lv_label_set_text_fmt(audio_status_label, "Audio: %s", audio_status);
-
-    lv_obj_t *reload = create_button(overview, 16, 302, 134, 40, "Reload", false);
-    lv_obj_add_event_cb(reload, sd_button_event, LV_EVENT_CLICKED,
-                        reinterpret_cast<void *>(static_cast<intptr_t>(SdCommand::Retry)));
-    lv_obj_t *play = create_button(overview, 166, 302, 134, 40, "Play WAV", false);
-    lv_obj_add_event_cb(play, play_audio_button_event, LV_EVENT_CLICKED, nullptr);
-
-    lv_obj_t *status = create_card(landing_screen, 688, 210, 312, 366);
-    add_label(status, 16, 16, "GPS POSITION", Accent, &lv_font_montserrat_20);
-    gps_status_label = lv_label_create(status);
+    lv_obj_t *gps = create_card(landing_screen, 352, BottomY, 312, BottomHeight);
+    add_label(gps, 16, 16, "GPS POSITION", Accent, &lv_font_montserrat_20);
+    gps_status_label = lv_label_create(gps);
     lv_obj_set_pos(gps_status_label, 16, 52);
-    lv_obj_set_width(gps_status_label, 280);
+    lv_obj_set_width(gps_status_label, 248);
     lv_label_set_long_mode(gps_status_label, LV_LABEL_LONG_WRAP);
     lv_obj_set_style_text_color(gps_status_label, Muted, LV_PART_MAIN);
     lv_label_set_text(gps_status_label, gps_status);
-    add_label(status, 16, 112, "TTN / CLASS A", Accent, &lv_font_montserrat_20);
+
+    lv_obj_t *status = create_card(landing_screen, 680, BottomY, 320, BottomHeight);
+    add_label(status, 16, 16, "TTN / CLASS A", Accent, &lv_font_montserrat_20);
     lora_status_label = lv_label_create(status);
-    lv_obj_set_pos(lora_status_label, 16, 148);
-    lv_obj_set_width(lora_status_label, 280);
-    lv_label_set_long_mode(lora_status_label, LV_LABEL_LONG_WRAP);
+    lv_obj_set_pos(lora_status_label, 16, 52);
+    lv_obj_set_size(lora_status_label, 256, 72);
+    lv_label_set_long_mode(lora_status_label, LV_LABEL_LONG_DOT);
     lv_obj_set_style_text_color(lora_status_label, Muted, LV_PART_MAIN);
     lv_label_set_text(lora_status_label, lora_status);
 
     downlink_status_label = lv_label_create(status);
-    lv_obj_set_pos(downlink_status_label, 16, 188);
-    lv_obj_set_width(downlink_status_label, 280);
-    lv_label_set_long_mode(downlink_status_label, LV_LABEL_LONG_WRAP);
+    lv_obj_set_pos(downlink_status_label, 16, 132);
+    lv_obj_set_size(downlink_status_label, 256, 72);
+    lv_label_set_long_mode(downlink_status_label, LV_LABEL_LONG_DOT);
     lv_obj_set_style_text_color(downlink_status_label, Muted, LV_PART_MAIN);
     lv_label_set_text(downlink_status_label, downlink_status);
 
@@ -481,7 +451,7 @@ extern "C" void landing_screen_init()
                                   LoraUplink::Gps};
     for (size_t i = 0; i < 3; ++i) {
         lv_obj_t *uplink_button = create_button(
-            status, 16 + static_cast<int>(i) * 90, 238, 84, 40,
+            status, 16 + static_cast<int>(i) * 88, 214, 80, 40,
             uplink_labels[i], false);
         lv_obj_add_event_cb(uplink_button, lora_uplink_button_event,
                             LV_EVENT_CLICKED,
@@ -489,7 +459,7 @@ extern "C" void landing_screen_init()
                                 static_cast<intptr_t>(uplinks[i])));
     }
 
-    lv_obj_t *button = create_button(status, 16, 290, 264, 48, "Mijn schermen", true);
+    lv_obj_t *button = create_button(status, 16, 266, 256, 48, "Mijn schermen", true);
     lv_obj_add_event_cb(button, open_existing_screens, LV_EVENT_CLICKED, nullptr);
 
     create_wifi_screen();
@@ -497,15 +467,37 @@ extern "C" void landing_screen_init()
     lv_screen_load(landing_screen);
 }
 
+// The DS18B20 has no status queue: look at its latest reading once a second.
+void update_temperature()
+{
+    static uint32_t last_ms;
+    static bool first = true;
+    const uint32_t now = millis();
+    if (!temperature_label || (!first && now - last_ms < 1000)) {
+        return;
+    }
+    first = false;
+    last_ms = now;
+    float celsius = 0.0f;
+    if (temp_service_latest(&celsius)) {
+        // LVGL's own printf has no %f: format with snprintf.
+        char text[24];
+        snprintf(text, sizeof(text), "%.1f \xC2\xB0" "C", celsius);
+        lv_label_set_text(temperature_label, text);
+        lv_label_set_text_fmt(temperature_status_label, "DS18B20 on GPIO%d", TEMP_GPIO_DATA);
+    } else {
+        lv_label_set_text(temperature_label, "-- \xC2\xB0" "C");
+        lv_label_set_text(temperature_status_label, "Sensor not found");
+    }
+}
+
 extern "C" void landing_screen_tick()
 {
+    update_temperature();
     if (wifi_read_status(wifi_status, sizeof(wifi_status))) {
         update_wifi_fields();
     }
     if (sd_service_read_status(sd_status, sizeof(sd_status))) {
-        if (sd_status_label) {
-            lv_label_set_text(sd_status_label, sd_status);
-        }
         update_wifi_fields();
     }
     if (lora_service_read_status(lora_status, sizeof(lora_status)) &&
@@ -534,8 +526,6 @@ extern "C" void landing_screen_tick()
             }
         }
     }
-    if (audio_service_read_status(audio_status, sizeof(audio_status)) &&
-        audio_status_label) {
-        lv_label_set_text_fmt(audio_status_label, "Audio: %s", audio_status);
-    }
+    // Nothing on the dashboard shows it any more; reading keeps the status queue empty.
+    audio_service_read_status(audio_status, sizeof(audio_status));
 }

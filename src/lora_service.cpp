@@ -96,18 +96,14 @@ const char *build_uplink(uint8_t kind, Uplink &uplink)
         return nullptr;
     }
     case LoraUplink::Energy: {
-        // FPort 20: uint16 voltage in mV, int32 current in uA, uint32 power in mW.
-        InaReading reading{};
-        if (!ina_service_latest(INA_SOLAR, &reading) || !reading.connected) {
-            return "INA226 not connected";
-        }
-        if (reading.over_range) {
-            return "INA226 current over range";
+        // FPort 20, 1 byte: uint8 battery charge in %.
+        InaReading battery{};
+        if (!ina_service_latest(INA_BATTERY, &battery) || !battery.connected ||
+            !battery.has_battery_percent) {
+            return "no battery charge yet";
         }
         uplink.port = 20;
-        put(uplink, scaled<uint16_t>(reading.voltage, 1000));
-        put(uplink, scaled<int32_t>(reading.current, 1000000));
-        put(uplink, scaled<uint32_t>(reading.power, 1000));
+        put(uplink, battery.battery_percent);
         return nullptr;
     }
     case LoraUplink::Gps: {
