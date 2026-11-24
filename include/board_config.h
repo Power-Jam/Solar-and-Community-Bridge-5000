@@ -58,10 +58,16 @@
 #define INA_SHUNT_OHMS 0.1f
 #define INA_MAX_CURRENT_A 0.8f
 
-// Second INA226, between the battery and the inverter module (A0 to VCC, A1 to GND = 0x41).
+// Second sensor, between the battery and the inverter module: an INA260 (built-in 2 mOhm
+// shunt, up to 15 A, no calibration), at 0x40 with A0 and A1 to GND.
 #define INA2_ADDRESS 0x40
-#define INA2_SHUNT_OHMS 0.1f
-#define INA2_MAX_CURRENT_A 0.8f
+#define INA2_MAX_CURRENT_A 15.0f
+
+// Battery: one 3.7 V LiPo pouch cell, 10500 mAh (1060110), charged to 4.2 V by the Waveshare
+// Solar Power Manager (D). Its charge is counted from the INA260 current and corrected by the
+// voltage (after taking out the drop over the internal resistance at the measured current).
+#define BATTERY_INTERNAL_OHMS 0.05f
+#define BATTERY_CAPACITY_MAH 10500.0f
 
 #define GPS_GPIO_RX 48
 #define GPS_BAUD 9600

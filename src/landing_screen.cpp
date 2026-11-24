@@ -53,6 +53,7 @@ lv_obj_t *lora_status_label;
 lv_obj_t *gps_status_label;
 lv_obj_t *downlink_status_label;
 lv_obj_t *energy_labels[INA_SENSOR_COUNT][3];
+lv_obj_t *battery_percent_label;
 lv_obj_t *key_labels[50];
 char ssid[33] = {};
 char password[65] = {};
@@ -78,8 +79,9 @@ void update_energy_labels(lv_obj_t *const (&labels)[3], const InaReading &readin
     snprintf(text, sizeof(text), "%.2f V", reading.voltage);
     lv_label_set_text(labels[0], text);
     if (reading.over_range) {
-        lv_label_set_text(labels[1], "OVER RANGE");
-        lv_label_set_text(labels[2], "OVER RANGE");
+        // Short, so it fits next to the title in the narrower cards.
+        lv_label_set_text(labels[1], "> MAX");
+        lv_label_set_text(labels[2], "> MAX");
         return;
     }
     snprintf(text, sizeof(text), "%.3f A", reading.current);
@@ -389,10 +391,13 @@ extern "C" void landing_screen_init()
         {"BATT VOLTAGE", "BATT CURRENT", "BATT POWER"},
     };
     const char *values[] = {"-- V", "-- A", "-- W"};
+    // Three columns of 256 px, and on the right a card as tall as both rows for the battery %.
+    constexpr int ColumnWidth = 256;
+    constexpr int ColumnStep = ColumnWidth + 16;
     for (size_t row = 0; row < INA_SENSOR_COUNT; ++row) {
         for (int i = 0; i < 3; ++i) {
-            lv_obj_t *card = create_card(landing_screen, 24 + i * 328,
-                                         84 + static_cast<int>(row) * 54, 312, 48);
+            lv_obj_t *card = create_card(landing_screen, 24 + i * ColumnStep,
+                                         84 + static_cast<int>(row) * 54, ColumnWidth, 48);
             lv_obj_t *title = lv_label_create(card);
             lv_label_set_text(title, titles[row][i]);
             lv_obj_set_style_text_color(title, Muted, LV_PART_MAIN);
@@ -406,6 +411,18 @@ extern "C" void landing_screen_init()
             energy_labels[row][i] = value;
         }
     }
+
+    lv_obj_t *battery_card =
+        create_card(landing_screen, 24 + 3 * ColumnStep, 84, 1000 - (24 + 3 * ColumnStep), 102);
+    lv_obj_t *battery_title = lv_label_create(battery_card);
+    lv_label_set_text(battery_title, "BATTERY");
+    lv_obj_set_style_text_color(battery_title, Muted, LV_PART_MAIN);
+    lv_obj_align(battery_title, LV_ALIGN_TOP_MID, 0, -6);
+    battery_percent_label = lv_label_create(battery_card);
+    lv_obj_set_style_text_color(battery_percent_label, Accent, LV_PART_MAIN);
+    lv_obj_set_style_text_font(battery_percent_label, &lv_font_montserrat_48, LV_PART_MAIN);
+    lv_label_set_text(battery_percent_label, "--%");
+    lv_obj_align(battery_percent_label, LV_ALIGN_BOTTOM_MID, 0, 6);
 
     dashboard_status = lv_label_create(landing_screen);
     lv_obj_set_pos(dashboard_status, 28, 194);
@@ -508,6 +525,13 @@ extern "C" void landing_screen_tick()
         if (ina_service_read(static_cast<InaSensor>(sensor), &energy) &&
             energy_labels[sensor][0]) {
             update_energy_labels(energy_labels[sensor], energy);
+            if (sensor == INA_BATTERY && battery_percent_label) {
+                if (energy.connected && energy.has_battery_percent) {
+                    lv_label_set_text_fmt(battery_percent_label, "%u%%", energy.battery_percent);
+                } else {
+                    lv_label_set_text(battery_percent_label, "--%");
+                }
+            }
         }
     }
     if (audio_service_read_status(audio_status, sizeof(audio_status)) &&

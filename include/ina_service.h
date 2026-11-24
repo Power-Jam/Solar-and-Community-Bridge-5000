@@ -2,6 +2,7 @@
 #define INA_SERVICE_H
 
 #include <stddef.h>
+#include <stdint.h>
 
 struct InaReading {
     bool connected;
@@ -9,6 +10,9 @@ struct InaReading {
     float voltage;
     float current;
     float power;
+    // Battery sensor only: estimated state of charge, 0-100.
+    bool has_battery_percent;
+    uint8_t battery_percent;
 };
 
 // Which INA226: solar panel -> inverter, and battery -> inverter.
