@@ -1,10 +1,17 @@
 #include "splash_screen.h"
 
+#include "eez-flow.h"
 #include "screen_backgrounds.h"
+#include "screens.h"
 #include "sd_service.h"
 
 #include <Arduino.h>
 #include <lvgl.h>
+
+// Set in platformio.ini; without it, the dashboard is shown as before.
+#ifndef DEVELOPER_MODE
+#define DEVELOPER_MODE 1
+#endif
 
 namespace
 {
@@ -104,8 +111,16 @@ void splash_screen_tick()
     const uint32_t elapsed = millis() - started_ms;
     if (finished || elapsed >= MaxDurationMs) {
         Serial.printf("[Splash] Done after %u ms\n", static_cast<unsigned>(elapsed));
-        // Deleting the splash once the new screen is shown frees its widgets.
+#if DEVELOPER_MODE
+        // Developer mode: on to the dashboard. Deleting the splash once the new screen is
+        // shown frees its widgets.
         lv_screen_load_anim(next_screen, LV_SCR_LOAD_ANIM_FADE_IN, 300, 0, true);
+#else
+        // Straight to the app screens, through the EEZ flow as the dashboard's button does;
+        // the splash is deleted once the fade has finished.
+        eez_flow_set_screen(SCREEN_ID_HOME_PAGE, LV_SCR_LOAD_ANIM_FADE_IN, 300, 0);
+        lv_obj_delete_delayed(splash, 400);
+#endif
         splash = nullptr;
         logo = nullptr;
         bar = nullptr;
