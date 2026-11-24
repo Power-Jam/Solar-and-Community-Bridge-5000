@@ -98,7 +98,7 @@ const char *build_uplink(uint8_t kind, Uplink &uplink)
     case LoraUplink::Energy: {
         // FPort 20: uint16 voltage in mV, int32 current in uA, uint32 power in mW.
         InaReading reading{};
-        if (!ina_service_latest(&reading) || !reading.connected) {
+        if (!ina_service_latest(INA_SOLAR, &reading) || !reading.connected) {
             return "INA226 not connected";
         }
         if (reading.over_range) {

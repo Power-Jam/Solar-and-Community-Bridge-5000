@@ -52,7 +52,7 @@ lv_obj_t *audio_status_label;
 lv_obj_t *lora_status_label;
 lv_obj_t *gps_status_label;
 lv_obj_t *downlink_status_label;
-lv_obj_t *energy_labels[3];
+lv_obj_t *energy_labels[INA_SENSOR_COUNT][3];
 lv_obj_t *key_labels[50];
 char ssid[33] = {};
 char password[65] = {};
@@ -65,27 +65,27 @@ char downlink_status[256] = "No downlink received";
 bool password_selected = false;
 uint8_t keyboard_page = 0;
 
-void update_energy_labels(const InaReading &reading)
+void update_energy_labels(lv_obj_t *const (&labels)[3], const InaReading &reading)
 {
     char text[32];
     if (!reading.connected) {
-        lv_label_set_text(energy_labels[0], "-- V");
-        lv_label_set_text(energy_labels[1], "-- A");
-        lv_label_set_text(energy_labels[2], "-- W");
+        lv_label_set_text(labels[0], "-- V");
+        lv_label_set_text(labels[1], "-- A");
+        lv_label_set_text(labels[2], "-- W");
         return;
     }
 
     snprintf(text, sizeof(text), "%.2f V", reading.voltage);
-    lv_label_set_text(energy_labels[0], text);
+    lv_label_set_text(labels[0], text);
     if (reading.over_range) {
-        lv_label_set_text(energy_labels[1], "OVER RANGE");
-        lv_label_set_text(energy_labels[2], "OVER RANGE");
+        lv_label_set_text(labels[1], "OVER RANGE");
+        lv_label_set_text(labels[2], "OVER RANGE");
         return;
     }
     snprintf(text, sizeof(text), "%.3f A", reading.current);
-    lv_label_set_text(energy_labels[1], text);
+    lv_label_set_text(labels[1], text);
     snprintf(text, sizeof(text), "%.2f W", reading.power);
-    lv_label_set_text(energy_labels[2], text);
+    lv_label_set_text(labels[2], text);
 }
 
 const char *wifi_input_error()
@@ -383,17 +383,28 @@ extern "C" void landing_screen_init()
     lv_obj_t *wifi_button = create_button(landing_screen, 802, 18, 198, 44, "WiFi setup", false);
     lv_obj_add_event_cb(wifi_button, wifi_button_event, LV_EVENT_CLICKED, nullptr);
 
-    const char *titles[] = {"VOLTAGE", "CURRENT", "POWER"};
+    // Two compact rows: solar panel -> inverter, and below it battery -> inverter.
+    const char *titles[INA_SENSOR_COUNT][3] = {
+        {"SOLAR VOLTAGE", "SOLAR CURRENT", "SOLAR POWER"},
+        {"BATT VOLTAGE", "BATT CURRENT", "BATT POWER"},
+    };
     const char *values[] = {"-- V", "-- A", "-- W"};
-    for (int i = 0; i < 3; ++i) {
-        const int x = 24 + i * 328;
-        create_card(landing_screen, x, 84, 312, 106);
-        add_label(landing_screen, x + 18, 98, titles[i], Muted, &lv_font_montserrat_20);
-        energy_labels[i] = lv_label_create(landing_screen);
-        lv_obj_set_pos(energy_labels[i], x + 18, 132);
-        lv_obj_set_style_text_color(energy_labels[i], i == 2 ? Accent : Text, LV_PART_MAIN);
-        lv_obj_set_style_text_font(energy_labels[i], &lv_font_montserrat_24, LV_PART_MAIN);
-        lv_label_set_text(energy_labels[i], values[i]);
+    for (size_t row = 0; row < INA_SENSOR_COUNT; ++row) {
+        for (int i = 0; i < 3; ++i) {
+            lv_obj_t *card = create_card(landing_screen, 24 + i * 328,
+                                         84 + static_cast<int>(row) * 54, 312, 48);
+            lv_obj_t *title = lv_label_create(card);
+            lv_label_set_text(title, titles[row][i]);
+            lv_obj_set_style_text_color(title, Muted, LV_PART_MAIN);
+            lv_obj_align(title, LV_ALIGN_LEFT_MID, 2, 0);
+
+            lv_obj_t *value = lv_label_create(card);
+            lv_obj_set_style_text_color(value, i == 2 ? Accent : Text, LV_PART_MAIN);
+            lv_obj_set_style_text_font(value, &lv_font_montserrat_24, LV_PART_MAIN);
+            lv_label_set_text(value, values[i]);
+            lv_obj_align(value, LV_ALIGN_RIGHT_MID, -2, 0);
+            energy_labels[row][i] = value;
+        }
     }
 
     dashboard_status = lv_label_create(landing_screen);
@@ -492,9 +503,12 @@ extern "C" void landing_screen_tick()
         gps_status_label) {
         lv_label_set_text(gps_status_label, gps_status);
     }
-    InaReading energy{};
-    if (ina_service_read(&energy) && energy_labels[0]) {
-        update_energy_labels(energy);
+    for (size_t sensor = 0; sensor < INA_SENSOR_COUNT; ++sensor) {
+        InaReading energy{};
+        if (ina_service_read(static_cast<InaSensor>(sensor), &energy) &&
+            energy_labels[sensor][0]) {
+            update_energy_labels(energy_labels[sensor], energy);
+        }
     }
     if (audio_service_read_status(audio_status, sizeof(audio_status)) &&
         audio_status_label) {
