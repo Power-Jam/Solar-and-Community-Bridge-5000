@@ -13,6 +13,7 @@
 #include "shop_service.h"
 #include "users_service.h"
 #include "screen_backgrounds.h"
+#include "battery_indicator.h"
 #include "splash_screen.h"
 #include "sd_service.h"
 #include "lora_service.h"
@@ -97,6 +98,7 @@ void setup()
     shop_init();
     lesson_init();
     landing_screen_init();
+    battery_indicator_init();
     splash_screen_init();
     sd_service_init();
 #if ASSETS_ON_SD_CARD
