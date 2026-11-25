@@ -14,6 +14,7 @@
 #include "users_service.h"
 #include "screen_backgrounds.h"
 #include "battery_indicator.h"
+#include "energy_overview.h"
 #include "splash_screen.h"
 #include "sd_service.h"
 #include "lora_service.h"
@@ -21,6 +22,7 @@
 #include "gps_service.h"
 #include "ina_service.h"
 #include "temp_service.h"
+#include "time_service.h"
 #include "wifi_service.h"
 
 namespace
@@ -76,6 +78,7 @@ namespace
 void setup()
 {
     Serial.begin(115200);
+    time_service_init();
     rfid_init();
     const bool i2c_ready = Wire.begin(I2C_GPIO_SDA, I2C_GPIO_SCL, 100000);
     if (i2c_ready) {
@@ -99,6 +102,7 @@ void setup()
     lesson_init();
     landing_screen_init();
     battery_indicator_init();
+    energy_overview_init();
     splash_screen_init();
     sd_service_init();
 #if ASSETS_ON_SD_CARD

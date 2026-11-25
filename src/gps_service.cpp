@@ -1,6 +1,7 @@
 #include "gps_service.h"
 
 #include "board_config.h"
+#include "time_service.h"
 
 #include <Arduino.h>
 #include <TinyGPS++.h>
@@ -70,6 +71,12 @@ void gps_task(void *)
                 if (gps.date.isValid() && gps.date.year() >= 2020) {
                     fix.date = gps.date.year() * 10000UL + gps.date.month() * 100UL +
                                gps.date.day();
+                    // A fresh time from the same fix sets the clock when it is unknown or off.
+                    if (gps.time.isValid() && gps.time.age() < 1500) {
+                        time_service_set_from_gps(gps.date.year(), gps.date.month(),
+                                                  gps.date.day(), gps.time.hour(),
+                                                  gps.time.minute(), gps.time.second());
+                    }
                 }
                 publish_fix(&fix);
 

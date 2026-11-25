@@ -474,21 +474,17 @@ typedef struct _objects_t {
     lv_obj_t *ai_battery_life_label;
     lv_obj_t *obj18;
     lv_obj_t *obj19;
+    lv_obj_t *battery_chart;
     lv_obj_t *obj20;
     lv_obj_t *obj21;
     lv_obj_t *obj22;
-    lv_obj_t *obj23;
-    lv_obj_t *battery_chart;
-    lv_obj_t *obj24;
-    lv_obj_t *obj25;
-    lv_obj_t *obj26;
     lv_obj_t *chart_time_label_1;
     lv_obj_t *chart_time_label_2;
     lv_obj_t *chart_now_label;
     lv_obj_t *chart_time_label_3;
     lv_obj_t *chart_time_label_4;
     lv_obj_t *forecast_learner_button;
-    lv_obj_t *obj27;
+    lv_obj_t *obj23;
     lv_obj_t *forecast_avatar_cover;
 } objects_t;
 

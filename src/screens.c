@@ -13,7 +13,7 @@
 objects_t objects;
 
 static const char *screen_names[] = { "HomePage", "UserListView", "UserCreation", "Chapters", "Roadmap", "Level1", "Level2", "TestingSensors", "ProfilePage", "ShopPage", "AIForecast" };
-static const char *object_names[] = { "home_page", "user_list_view", "user_creation", "chapters", "roadmap", "level1", "level2", "testing_sensors", "profile_page", "shop_page", "ai_forecast", "nav_bar_chapters", "nav_bar_chapters__nav_bar", "nav_bar_chapters__back_button", "nav_bar_chapters__battery_button", "nav_bar_chapters__help_button", "nav_bar_chapters__avatar_button", "nav_bar_chapters__avatar_image", "nav_bar_chapters__coins_button", "nav_bar_chapters__obj0", "nav_bar_chapters__battery_button_no_coins", "nav_bar_chapters__help_button_no_coins", "nav_bar_chapters__avatar_button_no_coins", "nav_bar_chapters__avatar_image_no_coins", "nav_bar_roadmap", "nav_bar_roadmap__nav_bar", "nav_bar_roadmap__back_button", "nav_bar_roadmap__battery_button", "nav_bar_roadmap__help_button", "nav_bar_roadmap__avatar_button", "nav_bar_roadmap__avatar_image", "nav_bar_roadmap__coins_button", "nav_bar_roadmap__obj0", "nav_bar_roadmap__battery_button_no_coins", "nav_bar_roadmap__help_button_no_coins", "nav_bar_roadmap__avatar_button_no_coins", "nav_bar_roadmap__avatar_image_no_coins", "level_point_1", "level_point_1__obj1", "level_point_1__level", "level_point_1__level_image", "level_point_1__level_done", "level_point_1__level_done_image", "level_point_1__level_ongoing", "level_point_1__level_ongoing_image", "level_point_2", "level_point_2__obj1", "level_point_2__level", "level_point_2__level_image", "level_point_2__level_done", "level_point_2__level_done_image", "level_point_2__level_ongoing", "level_point_2__level_ongoing_image", "level_point_3", "level_point_3__obj1", "level_point_3__level", "level_point_3__level_image", "level_point_3__level_done", "level_point_3__level_done_image", "level_point_3__level_ongoing", "level_point_3__level_ongoing_image", "level_point_4", "level_point_4__obj1", "level_point_4__level", "level_point_4__level_image", "level_point_4__level_done", "level_point_4__level_done_image", "level_point_4__level_ongoing", "level_point_4__level_ongoing_image", "level_point_5", "level_point_5__obj1", "level_point_5__level", "level_point_5__level_image", "level_point_5__level_done", "level_point_5__level_done_image", "level_point_5__level_ongoing", "level_point_5__level_ongoing_image", "level_point_6", "level_point_6__obj1", "level_point_6__level", "level_point_6__level_image", "level_point_6__level_done", "level_point_6__level_done_image", "level_point_6__level_ongoing", "level_point_6__level_ongoing_image", "level_point_7", "level_point_7__obj1", "level_point_7__level", "level_point_7__level_image", "level_point_7__level_done", "level_point_7__level_done_image", "level_point_7__level_ongoing", "level_point_7__level_ongoing_image", "level_point_8", "level_point_8__obj1", "level_point_8__level", "level_point_8__level_image", "level_point_8__level_done", "level_point_8__level_done_image", "level_point_8__level_ongoing", "level_point_8__level_ongoing_image", "level1_next", "level1_next__lvl1_complete_level_button", "level1_next__obj2", "nav_bar_level", "nav_bar_level__nav_bar", "nav_bar_level__back_button", "nav_bar_level__battery_button", "nav_bar_level__help_button", "nav_bar_level__avatar_button", "nav_bar_level__avatar_image", "nav_bar_level__coins_button", "nav_bar_level__obj0", "nav_bar_level__battery_button_no_coins", "nav_bar_level__help_button_no_coins", "nav_bar_level__avatar_button_no_coins", "nav_bar_level__avatar_image_no_coins", "obj0", "obj0__lvl1_complete_level_button", "obj0__obj2", "obj1", "obj1__lvl1_complete_level_button", "obj1__obj2", "nav_bar_profile", "nav_bar_profile__nav_bar", "nav_bar_profile__back_button", "nav_bar_profile__battery_button", "nav_bar_profile__help_button", "nav_bar_profile__avatar_button", "nav_bar_profile__avatar_image", "nav_bar_profile__coins_button", "nav_bar_profile__obj0", "nav_bar_profile__battery_button_no_coins", "nav_bar_profile__help_button_no_coins", "nav_bar_profile__avatar_button_no_coins", "nav_bar_profile__avatar_image_no_coins", "nav_bar_shop", "nav_bar_shop__nav_bar", "nav_bar_shop__back_button", "nav_bar_shop__battery_button", "nav_bar_shop__help_button", "nav_bar_shop__avatar_button", "nav_bar_shop__avatar_image", "nav_bar_shop__coins_button", "nav_bar_shop__obj0", "nav_bar_shop__battery_button_no_coins", "nav_bar_shop__help_button_no_coins", "nav_bar_shop__avatar_button_no_coins", "nav_bar_shop__avatar_image_no_coins", "shop_item_1", "shop_item_1__card", "shop_item_1__owned_badge", "shop_item_1__owned_label", "shop_item_2", "shop_item_2__card", "shop_item_2__owned_badge", "shop_item_2__owned_label", "shop_item_3", "shop_item_3__card", "shop_item_3__owned_badge", "shop_item_3__owned_label", "shop_item_4", "shop_item_4__card", "shop_item_4__owned_badge", "shop_item_4__owned_label", "shop_item_5", "shop_item_5__card", "shop_item_5__owned_badge", "shop_item_5__owned_label", "shop_item_6", "shop_item_6__card", "shop_item_6__owned_badge", "shop_item_6__owned_label", "shop_item_7", "shop_item_7__card", "shop_item_7__owned_badge", "shop_item_7__owned_label", "shop_item_8", "shop_item_8__card", "shop_item_8__owned_badge", "shop_item_8__owned_label", "shop_item_9", "shop_item_9__card", "shop_item_9__owned_badge", "shop_item_9__owned_label", "shop_item_10", "shop_item_10__card", "shop_item_10__owned_badge", "shop_item_10__owned_label", "shop_item_11", "shop_item_11__card", "shop_item_11__owned_badge", "shop_item_11__owned_label", "shop_item_12", "shop_item_12__card", "shop_item_12__owned_badge", "shop_item_12__owned_label", "nav_bar_ai_forecast", "nav_bar_ai_forecast__nav_bar", "nav_bar_ai_forecast__back_button", "nav_bar_ai_forecast__battery_button", "nav_bar_ai_forecast__help_button", "nav_bar_ai_forecast__avatar_button", "nav_bar_ai_forecast__avatar_image", "nav_bar_ai_forecast__coins_button", "nav_bar_ai_forecast__obj0", "nav_bar_ai_forecast__battery_button_no_coins", "nav_bar_ai_forecast__help_button_no_coins", "nav_bar_ai_forecast__avatar_button_no_coins", "nav_bar_ai_forecast__avatar_image_no_coins", "homepage_background", "btn_start", "btn_users", "home_avatar_center", "home_name_center", "home_prev", "home_avatar_prev", "home_arrow_prev", "home_name_prev", "home_next", "home_avatar_next", "home_arrow_next", "home_name_next", "user_list_background", "add_user_button", "user_search", "user_rows", "user_row_1", "user_row_1_avatar", "user_row_1_name", "user_row_1_arrow", "user_row_2", "user_row_2_avatar", "user_row_2_name", "user_row_2_arrow", "user_row_3", "user_row_3_avatar", "user_row_3_name", "user_row_3_arrow", "user_row_4", "user_row_4_avatar", "user_row_4_name", "user_row_4_arrow", "user_row_5", "user_row_5_avatar", "user_row_5_name", "user_row_5_arrow", "user_row_6", "user_row_6_avatar", "user_row_6_name", "user_row_6_arrow", "user_row_7", "user_row_7_avatar", "user_row_7_name", "user_row_7_arrow", "user_row_8", "user_row_8_avatar", "user_row_8_name", "user_row_8_arrow", "user_row_9", "user_row_9_avatar", "user_row_9_name", "user_row_9_arrow", "user_row_10", "user_row_10_avatar", "user_row_10_name", "user_row_10_arrow", "user_row_11", "user_row_11_avatar", "user_row_11_name", "user_row_11_arrow", "user_row_12", "user_row_12_avatar", "user_row_12_name", "user_row_12_arrow", "user_creation_background", "action_user_creation_avatar_1_1", "action_user_creation_avatar_2_2", "action_user_creation_avatar_3_3", "action_user_creation_avatar_4_4", "action_user_creation_avatar_5_5", "action_user_creation_avatar_6_6", "action_user_creation_avatar_7_7", "action_user_creation_avatar_8_8", "action_user_creation_avatar_9_9", "action_user_creation_cancel_10", "action_user_creation_confirm_11", "user_name_input", "chapter_background", "obj2", "obj3", "obj4", "obj5", "obj6", "roadmap_background", "obj7", "level_label_1", "level_label_2", "level_label_3", "level_label_4", "level_label_5", "level_label_6", "level_label_7", "level_label_8", "obj8", "obj9", "lesson_step_0", "lesson_step_0_card_0", "lesson_step_0_pic_0", "lesson_step_0_pic_1", "lesson_step_1", "lesson_step_1_card_0", "lesson_step_1_pic_0", "lesson_step_1_pic_1", "lesson_step_1_pic_2", "lesson_step_1_pic_3", "lesson_step_1_pic_4", "lesson_step_1_pic_5", "lesson_q1_house", "lesson_q1_lamp", "lesson_q1_sun", "lesson_step_2", "lesson_step_2_card_0", "lesson_step_2_pic_0", "lesson_step_2_pic_1", "lesson_step_2_pic_2", "lesson_step_2_pic_3", "lesson_step_2_pic_4", "lesson_step_3", "lesson_step_3_card_0", "lesson_step_3_pic_0", "lesson_step_3_pic_1", "lesson_step_4", "lesson_step_4_card_0", "lesson_step_4_pic_0", "lesson_step_4_pic_1", "lesson_step_5", "lesson_step_5_card_0", "lesson_step_5_pic_0", "lesson_step_5_pic_1", "lesson_step_6", "lesson_step_6_card_0", "lesson_step_6_pic_0", "lesson_step_6_pic_1", "lesson_step_6_pic_2", "lesson_step_6_pic_3", "lesson_step_6_pic_4", "lesson_step_6_pic_5", "lesson_q2_house", "lesson_q2_battery", "lesson_q2_lamp", "lesson_step_7", "lesson_step_7_card_0", "lesson_step_7_pic_0", "lesson_step_7_pic_1", "lesson_step_7_pic_2", "lesson_step_7_pic_3", "lesson_step_7_pic_4", "lesson_branch_1_0", "lesson_branch_1_0_card_0", "lesson_branch_1_0_pic_0", "lesson_branch_1_0_pic_1", "lesson_branch_1_1", "lesson_branch_1_1_card_0", "lesson_branch_1_1_pic_0", "lesson_branch_1_1_pic_1", "lesson_branch_1_2", "lesson_branch_1_2_card_0", "lesson_branch_1_2_pic_0", "lesson_branch_1_2_pic_1", "lesson_branch_1_3", "lesson_branch_1_3_card_0", "lesson_branch_1_3_pic_0", "lesson_branch_1_3_pic_1", "lesson_branch_2_0", "lesson_branch_2_0_card_0", "lesson_branch_2_0_pic_0", "lesson_branch_2_0_pic_1", "lesson_branch_2_1", "lesson_branch_2_1_card_0", "lesson_branch_2_1_pic_0", "lesson_branch_2_1_pic_1", "lesson_branch_2_2", "lesson_branch_2_2_card_0", "lesson_branch_2_2_pic_0", "lesson_branch_2_2_pic_1", "lesson_branch_2_3", "lesson_branch_2_3_card_0", "lesson_branch_2_3_pic_0", "lesson_branch_2_3_pic_1", "lesson_branch_3_0", "lesson_branch_3_0_card_0", "lesson_branch_3_0_pic_0", "lesson_branch_3_0_pic_1", "lesson_branch_3_1", "lesson_branch_3_1_card_0", "lesson_branch_3_1_pic_0", "lesson_branch_3_1_pic_1", "lesson_branch_3_2", "lesson_branch_3_2_card_0", "lesson_branch_3_2_pic_0", "lesson_branch_3_2_pic_1", "lesson_branch_3_3", "lesson_branch_3_3_card_0", "lesson_branch_3_3_pic_0", "lesson_branch_3_3_pic_1", "lesson_keep_up", "obj10", "profile_background", "shop_button", "user_selection", "profile_name", "profile_figure", "outfit_item_1", "outfit_item_2", "outfit_item_3", "outfit_item_4", "outfit_item_5", "outfit_item_6", "outfit_label_1", "outfit_label_2", "outfit_label_3", "outfit_label_4", "outfit_label_5", "outfit_label_6", "shop_background", "shop_figure", "shop_overlay", "overlay_buy_wear", "overlay_item", "overlay_action", "overlay_action_icon", "overlay_action_title", "overlay_action_detail", "close_button", "overlay_balance", "overlay_price", "obj11", "obj12", "obj13", "obj14", "ai_sessions_label", "obj15", "obj16", "obj17", "ai_battery_life_label", "obj18", "obj19", "obj20", "obj21", "obj22", "obj23", "battery_chart", "obj24", "obj25", "obj26", "chart_time_label_1", "chart_time_label_2", "chart_now_label", "chart_time_label_3", "chart_time_label_4", "forecast_learner_button", "obj27", "forecast_avatar_cover" };
+static const char *object_names[] = { "home_page", "user_list_view", "user_creation", "chapters", "roadmap", "level1", "level2", "testing_sensors", "profile_page", "shop_page", "ai_forecast", "nav_bar_chapters", "nav_bar_chapters__nav_bar", "nav_bar_chapters__back_button", "nav_bar_chapters__battery_button", "nav_bar_chapters__help_button", "nav_bar_chapters__avatar_button", "nav_bar_chapters__avatar_image", "nav_bar_chapters__coins_button", "nav_bar_chapters__obj0", "nav_bar_chapters__battery_button_no_coins", "nav_bar_chapters__help_button_no_coins", "nav_bar_chapters__avatar_button_no_coins", "nav_bar_chapters__avatar_image_no_coins", "nav_bar_roadmap", "nav_bar_roadmap__nav_bar", "nav_bar_roadmap__back_button", "nav_bar_roadmap__battery_button", "nav_bar_roadmap__help_button", "nav_bar_roadmap__avatar_button", "nav_bar_roadmap__avatar_image", "nav_bar_roadmap__coins_button", "nav_bar_roadmap__obj0", "nav_bar_roadmap__battery_button_no_coins", "nav_bar_roadmap__help_button_no_coins", "nav_bar_roadmap__avatar_button_no_coins", "nav_bar_roadmap__avatar_image_no_coins", "level_point_1", "level_point_1__obj1", "level_point_1__level", "level_point_1__level_image", "level_point_1__level_done", "level_point_1__level_done_image", "level_point_1__level_ongoing", "level_point_1__level_ongoing_image", "level_point_2", "level_point_2__obj1", "level_point_2__level", "level_point_2__level_image", "level_point_2__level_done", "level_point_2__level_done_image", "level_point_2__level_ongoing", "level_point_2__level_ongoing_image", "level_point_3", "level_point_3__obj1", "level_point_3__level", "level_point_3__level_image", "level_point_3__level_done", "level_point_3__level_done_image", "level_point_3__level_ongoing", "level_point_3__level_ongoing_image", "level_point_4", "level_point_4__obj1", "level_point_4__level", "level_point_4__level_image", "level_point_4__level_done", "level_point_4__level_done_image", "level_point_4__level_ongoing", "level_point_4__level_ongoing_image", "level_point_5", "level_point_5__obj1", "level_point_5__level", "level_point_5__level_image", "level_point_5__level_done", "level_point_5__level_done_image", "level_point_5__level_ongoing", "level_point_5__level_ongoing_image", "level_point_6", "level_point_6__obj1", "level_point_6__level", "level_point_6__level_image", "level_point_6__level_done", "level_point_6__level_done_image", "level_point_6__level_ongoing", "level_point_6__level_ongoing_image", "level_point_7", "level_point_7__obj1", "level_point_7__level", "level_point_7__level_image", "level_point_7__level_done", "level_point_7__level_done_image", "level_point_7__level_ongoing", "level_point_7__level_ongoing_image", "level_point_8", "level_point_8__obj1", "level_point_8__level", "level_point_8__level_image", "level_point_8__level_done", "level_point_8__level_done_image", "level_point_8__level_ongoing", "level_point_8__level_ongoing_image", "level1_next", "level1_next__lvl1_complete_level_button", "level1_next__obj2", "nav_bar_level", "nav_bar_level__nav_bar", "nav_bar_level__back_button", "nav_bar_level__battery_button", "nav_bar_level__help_button", "nav_bar_level__avatar_button", "nav_bar_level__avatar_image", "nav_bar_level__coins_button", "nav_bar_level__obj0", "nav_bar_level__battery_button_no_coins", "nav_bar_level__help_button_no_coins", "nav_bar_level__avatar_button_no_coins", "nav_bar_level__avatar_image_no_coins", "obj0", "obj0__lvl1_complete_level_button", "obj0__obj2", "obj1", "obj1__lvl1_complete_level_button", "obj1__obj2", "nav_bar_profile", "nav_bar_profile__nav_bar", "nav_bar_profile__back_button", "nav_bar_profile__battery_button", "nav_bar_profile__help_button", "nav_bar_profile__avatar_button", "nav_bar_profile__avatar_image", "nav_bar_profile__coins_button", "nav_bar_profile__obj0", "nav_bar_profile__battery_button_no_coins", "nav_bar_profile__help_button_no_coins", "nav_bar_profile__avatar_button_no_coins", "nav_bar_profile__avatar_image_no_coins", "nav_bar_shop", "nav_bar_shop__nav_bar", "nav_bar_shop__back_button", "nav_bar_shop__battery_button", "nav_bar_shop__help_button", "nav_bar_shop__avatar_button", "nav_bar_shop__avatar_image", "nav_bar_shop__coins_button", "nav_bar_shop__obj0", "nav_bar_shop__battery_button_no_coins", "nav_bar_shop__help_button_no_coins", "nav_bar_shop__avatar_button_no_coins", "nav_bar_shop__avatar_image_no_coins", "shop_item_1", "shop_item_1__card", "shop_item_1__owned_badge", "shop_item_1__owned_label", "shop_item_2", "shop_item_2__card", "shop_item_2__owned_badge", "shop_item_2__owned_label", "shop_item_3", "shop_item_3__card", "shop_item_3__owned_badge", "shop_item_3__owned_label", "shop_item_4", "shop_item_4__card", "shop_item_4__owned_badge", "shop_item_4__owned_label", "shop_item_5", "shop_item_5__card", "shop_item_5__owned_badge", "shop_item_5__owned_label", "shop_item_6", "shop_item_6__card", "shop_item_6__owned_badge", "shop_item_6__owned_label", "shop_item_7", "shop_item_7__card", "shop_item_7__owned_badge", "shop_item_7__owned_label", "shop_item_8", "shop_item_8__card", "shop_item_8__owned_badge", "shop_item_8__owned_label", "shop_item_9", "shop_item_9__card", "shop_item_9__owned_badge", "shop_item_9__owned_label", "shop_item_10", "shop_item_10__card", "shop_item_10__owned_badge", "shop_item_10__owned_label", "shop_item_11", "shop_item_11__card", "shop_item_11__owned_badge", "shop_item_11__owned_label", "shop_item_12", "shop_item_12__card", "shop_item_12__owned_badge", "shop_item_12__owned_label", "nav_bar_ai_forecast", "nav_bar_ai_forecast__nav_bar", "nav_bar_ai_forecast__back_button", "nav_bar_ai_forecast__battery_button", "nav_bar_ai_forecast__help_button", "nav_bar_ai_forecast__avatar_button", "nav_bar_ai_forecast__avatar_image", "nav_bar_ai_forecast__coins_button", "nav_bar_ai_forecast__obj0", "nav_bar_ai_forecast__battery_button_no_coins", "nav_bar_ai_forecast__help_button_no_coins", "nav_bar_ai_forecast__avatar_button_no_coins", "nav_bar_ai_forecast__avatar_image_no_coins", "homepage_background", "btn_start", "btn_users", "home_avatar_center", "home_name_center", "home_prev", "home_avatar_prev", "home_arrow_prev", "home_name_prev", "home_next", "home_avatar_next", "home_arrow_next", "home_name_next", "user_list_background", "add_user_button", "user_search", "user_rows", "user_row_1", "user_row_1_avatar", "user_row_1_name", "user_row_1_arrow", "user_row_2", "user_row_2_avatar", "user_row_2_name", "user_row_2_arrow", "user_row_3", "user_row_3_avatar", "user_row_3_name", "user_row_3_arrow", "user_row_4", "user_row_4_avatar", "user_row_4_name", "user_row_4_arrow", "user_row_5", "user_row_5_avatar", "user_row_5_name", "user_row_5_arrow", "user_row_6", "user_row_6_avatar", "user_row_6_name", "user_row_6_arrow", "user_row_7", "user_row_7_avatar", "user_row_7_name", "user_row_7_arrow", "user_row_8", "user_row_8_avatar", "user_row_8_name", "user_row_8_arrow", "user_row_9", "user_row_9_avatar", "user_row_9_name", "user_row_9_arrow", "user_row_10", "user_row_10_avatar", "user_row_10_name", "user_row_10_arrow", "user_row_11", "user_row_11_avatar", "user_row_11_name", "user_row_11_arrow", "user_row_12", "user_row_12_avatar", "user_row_12_name", "user_row_12_arrow", "user_creation_background", "action_user_creation_avatar_1_1", "action_user_creation_avatar_2_2", "action_user_creation_avatar_3_3", "action_user_creation_avatar_4_4", "action_user_creation_avatar_5_5", "action_user_creation_avatar_6_6", "action_user_creation_avatar_7_7", "action_user_creation_avatar_8_8", "action_user_creation_avatar_9_9", "action_user_creation_cancel_10", "action_user_creation_confirm_11", "user_name_input", "chapter_background", "obj2", "obj3", "obj4", "obj5", "obj6", "roadmap_background", "obj7", "level_label_1", "level_label_2", "level_label_3", "level_label_4", "level_label_5", "level_label_6", "level_label_7", "level_label_8", "obj8", "obj9", "lesson_step_0", "lesson_step_0_card_0", "lesson_step_0_pic_0", "lesson_step_0_pic_1", "lesson_step_1", "lesson_step_1_card_0", "lesson_step_1_pic_0", "lesson_step_1_pic_1", "lesson_step_1_pic_2", "lesson_step_1_pic_3", "lesson_step_1_pic_4", "lesson_step_1_pic_5", "lesson_q1_house", "lesson_q1_lamp", "lesson_q1_sun", "lesson_step_2", "lesson_step_2_card_0", "lesson_step_2_pic_0", "lesson_step_2_pic_1", "lesson_step_2_pic_2", "lesson_step_2_pic_3", "lesson_step_2_pic_4", "lesson_step_3", "lesson_step_3_card_0", "lesson_step_3_pic_0", "lesson_step_3_pic_1", "lesson_step_4", "lesson_step_4_card_0", "lesson_step_4_pic_0", "lesson_step_4_pic_1", "lesson_step_5", "lesson_step_5_card_0", "lesson_step_5_pic_0", "lesson_step_5_pic_1", "lesson_step_6", "lesson_step_6_card_0", "lesson_step_6_pic_0", "lesson_step_6_pic_1", "lesson_step_6_pic_2", "lesson_step_6_pic_3", "lesson_step_6_pic_4", "lesson_step_6_pic_5", "lesson_q2_house", "lesson_q2_battery", "lesson_q2_lamp", "lesson_step_7", "lesson_step_7_card_0", "lesson_step_7_pic_0", "lesson_step_7_pic_1", "lesson_step_7_pic_2", "lesson_step_7_pic_3", "lesson_step_7_pic_4", "lesson_branch_1_0", "lesson_branch_1_0_card_0", "lesson_branch_1_0_pic_0", "lesson_branch_1_0_pic_1", "lesson_branch_1_1", "lesson_branch_1_1_card_0", "lesson_branch_1_1_pic_0", "lesson_branch_1_1_pic_1", "lesson_branch_1_2", "lesson_branch_1_2_card_0", "lesson_branch_1_2_pic_0", "lesson_branch_1_2_pic_1", "lesson_branch_1_3", "lesson_branch_1_3_card_0", "lesson_branch_1_3_pic_0", "lesson_branch_1_3_pic_1", "lesson_branch_2_0", "lesson_branch_2_0_card_0", "lesson_branch_2_0_pic_0", "lesson_branch_2_0_pic_1", "lesson_branch_2_1", "lesson_branch_2_1_card_0", "lesson_branch_2_1_pic_0", "lesson_branch_2_1_pic_1", "lesson_branch_2_2", "lesson_branch_2_2_card_0", "lesson_branch_2_2_pic_0", "lesson_branch_2_2_pic_1", "lesson_branch_2_3", "lesson_branch_2_3_card_0", "lesson_branch_2_3_pic_0", "lesson_branch_2_3_pic_1", "lesson_branch_3_0", "lesson_branch_3_0_card_0", "lesson_branch_3_0_pic_0", "lesson_branch_3_0_pic_1", "lesson_branch_3_1", "lesson_branch_3_1_card_0", "lesson_branch_3_1_pic_0", "lesson_branch_3_1_pic_1", "lesson_branch_3_2", "lesson_branch_3_2_card_0", "lesson_branch_3_2_pic_0", "lesson_branch_3_2_pic_1", "lesson_branch_3_3", "lesson_branch_3_3_card_0", "lesson_branch_3_3_pic_0", "lesson_branch_3_3_pic_1", "lesson_keep_up", "obj10", "profile_background", "shop_button", "user_selection", "profile_name", "profile_figure", "outfit_item_1", "outfit_item_2", "outfit_item_3", "outfit_item_4", "outfit_item_5", "outfit_item_6", "outfit_label_1", "outfit_label_2", "outfit_label_3", "outfit_label_4", "outfit_label_5", "outfit_label_6", "shop_background", "shop_figure", "shop_overlay", "overlay_buy_wear", "overlay_item", "overlay_action", "overlay_action_icon", "overlay_action_title", "overlay_action_detail", "close_button", "overlay_balance", "overlay_price", "obj11", "obj12", "obj13", "obj14", "ai_sessions_label", "obj15", "obj16", "obj17", "ai_battery_life_label", "obj18", "obj19", "battery_chart", "obj20", "obj21", "obj22", "chart_time_label_1", "chart_time_label_2", "chart_now_label", "chart_time_label_3", "chart_time_label_4", "forecast_learner_button", "obj23", "forecast_avatar_cover" };
 
 //
 // Event handlers
@@ -193,7 +193,7 @@ static void event_handler_cb_ai_forecast_forecast_learner_button(lv_event_t *e) 
     
     if (event == LV_EVENT_CLICKED) {
         e->user_data = (void *)0;
-        flowPropagateValueLVGLEvent(flowState, 26, 0, e);
+        flowPropagateValueLVGLEvent(flowState, 22, 0, e);
     }
 }
 
@@ -4580,66 +4580,6 @@ void create_screen_ai_forecast() {
             {
                 lv_obj_t *parent_obj = obj;
                 {
-                    lv_obj_t *obj = lv_obj_create(parent_obj);
-                    objects.obj20 = obj;
-                    lv_obj_set_pos(obj, 40, 47);
-                    lv_obj_set_size(obj, 1, 187);
-                    lv_obj_remove_flag(obj, LV_OBJ_FLAG_CLICKABLE|LV_OBJ_FLAG_CLICK_FOCUSABLE|LV_OBJ_FLAG_SCROLLABLE);
-                    lv_obj_set_style_pad_top(obj, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
-                    lv_obj_set_style_pad_bottom(obj, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
-                    lv_obj_set_style_pad_left(obj, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
-                    lv_obj_set_style_pad_right(obj, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
-                    lv_obj_set_style_border_width(obj, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
-                    lv_obj_set_style_radius(obj, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
-                    lv_obj_set_style_bg_color(obj, lv_color_hex(0xc4cdbe), LV_PART_MAIN | LV_STATE_DEFAULT);
-                    lv_obj_set_style_bg_opa(obj, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
-                }
-                {
-                    lv_obj_t *obj = lv_obj_create(parent_obj);
-                    objects.obj21 = obj;
-                    lv_obj_set_pos(obj, 157, 47);
-                    lv_obj_set_size(obj, 1, 187);
-                    lv_obj_remove_flag(obj, LV_OBJ_FLAG_CLICKABLE|LV_OBJ_FLAG_CLICK_FOCUSABLE|LV_OBJ_FLAG_SCROLLABLE);
-                    lv_obj_set_style_pad_top(obj, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
-                    lv_obj_set_style_pad_bottom(obj, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
-                    lv_obj_set_style_pad_left(obj, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
-                    lv_obj_set_style_pad_right(obj, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
-                    lv_obj_set_style_border_width(obj, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
-                    lv_obj_set_style_radius(obj, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
-                    lv_obj_set_style_bg_color(obj, lv_color_hex(0xc4cdbe), LV_PART_MAIN | LV_STATE_DEFAULT);
-                    lv_obj_set_style_bg_opa(obj, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
-                }
-                {
-                    lv_obj_t *obj = lv_obj_create(parent_obj);
-                    objects.obj22 = obj;
-                    lv_obj_set_pos(obj, 384, 47);
-                    lv_obj_set_size(obj, 1, 187);
-                    lv_obj_remove_flag(obj, LV_OBJ_FLAG_CLICKABLE|LV_OBJ_FLAG_CLICK_FOCUSABLE|LV_OBJ_FLAG_SCROLLABLE);
-                    lv_obj_set_style_pad_top(obj, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
-                    lv_obj_set_style_pad_bottom(obj, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
-                    lv_obj_set_style_pad_left(obj, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
-                    lv_obj_set_style_pad_right(obj, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
-                    lv_obj_set_style_border_width(obj, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
-                    lv_obj_set_style_radius(obj, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
-                    lv_obj_set_style_bg_color(obj, lv_color_hex(0xc4cdbe), LV_PART_MAIN | LV_STATE_DEFAULT);
-                    lv_obj_set_style_bg_opa(obj, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
-                }
-                {
-                    lv_obj_t *obj = lv_obj_create(parent_obj);
-                    objects.obj23 = obj;
-                    lv_obj_set_pos(obj, 500, 47);
-                    lv_obj_set_size(obj, 1, 187);
-                    lv_obj_remove_flag(obj, LV_OBJ_FLAG_CLICKABLE|LV_OBJ_FLAG_CLICK_FOCUSABLE|LV_OBJ_FLAG_SCROLLABLE);
-                    lv_obj_set_style_pad_top(obj, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
-                    lv_obj_set_style_pad_bottom(obj, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
-                    lv_obj_set_style_pad_left(obj, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
-                    lv_obj_set_style_pad_right(obj, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
-                    lv_obj_set_style_border_width(obj, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
-                    lv_obj_set_style_radius(obj, 0, LV_PART_MAIN | LV_STATE_DEFAULT);
-                    lv_obj_set_style_bg_color(obj, lv_color_hex(0xc4cdbe), LV_PART_MAIN | LV_STATE_DEFAULT);
-                    lv_obj_set_style_bg_opa(obj, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
-                }
-                {
                     // battery_chart
                     lv_obj_t *obj = lv_chart_create(parent_obj);
                     objects.battery_chart = obj;
@@ -4659,7 +4599,7 @@ void create_screen_ai_forecast() {
                 }
                 {
                     lv_obj_t *obj = lv_obj_create(parent_obj);
-                    objects.obj24 = obj;
+                    objects.obj20 = obj;
                     lv_obj_set_pos(obj, 18, 234);
                     lv_obj_set_size(obj, 512, 1);
                     lv_obj_remove_flag(obj, LV_OBJ_FLAG_CLICKABLE|LV_OBJ_FLAG_CLICK_FOCUSABLE|LV_OBJ_FLAG_SCROLLABLE);
@@ -4674,7 +4614,7 @@ void create_screen_ai_forecast() {
                 }
                 {
                     lv_obj_t *obj = lv_obj_create(parent_obj);
-                    objects.obj25 = obj;
+                    objects.obj21 = obj;
                     lv_obj_set_pos(obj, 267, 40);
                     lv_obj_set_size(obj, 1, 195);
                     lv_obj_remove_flag(obj, LV_OBJ_FLAG_CLICKABLE|LV_OBJ_FLAG_CLICK_FOCUSABLE|LV_OBJ_FLAG_SCROLLABLE);
@@ -4689,7 +4629,7 @@ void create_screen_ai_forecast() {
                 }
                 {
                     lv_obj_t *obj = lv_label_create(parent_obj);
-                    objects.obj26 = obj;
+                    objects.obj22 = obj;
                     lv_obj_set_pos(obj, 272, 22);
                     lv_obj_set_size(obj, 60, LV_SIZE_CONTENT);
                     lv_obj_remove_flag(obj, LV_OBJ_FLAG_CLICK_FOCUSABLE|LV_OBJ_FLAG_SCROLLABLE);
@@ -4781,7 +4721,7 @@ void create_screen_ai_forecast() {
                 lv_obj_t *parent_obj = obj;
                 {
                     lv_obj_t *obj = lv_label_create(parent_obj);
-                    objects.obj27 = obj;
+                    objects.obj23 = obj;
                     lv_obj_set_pos(obj, 0, 11);
                     lv_obj_set_size(obj, 170, LV_SIZE_CONTENT);
                     lv_obj_remove_flag(obj, LV_OBJ_FLAG_CLICK_FOCUSABLE|LV_OBJ_FLAG_SCROLLABLE);
@@ -4828,21 +4768,17 @@ void delete_screen_ai_forecast() {
     objects.ai_battery_life_label = 0;
     objects.obj18 = 0;
     objects.obj19 = 0;
+    objects.battery_chart = 0;
     objects.obj20 = 0;
     objects.obj21 = 0;
     objects.obj22 = 0;
-    objects.obj23 = 0;
-    objects.battery_chart = 0;
-    objects.obj24 = 0;
-    objects.obj25 = 0;
-    objects.obj26 = 0;
     objects.chart_time_label_1 = 0;
     objects.chart_time_label_2 = 0;
     objects.chart_now_label = 0;
     objects.chart_time_label_3 = 0;
     objects.chart_time_label_4 = 0;
     objects.forecast_learner_button = 0;
-    objects.obj27 = 0;
+    objects.obj23 = 0;
     objects.forecast_avatar_cover = 0;
     deletePageFlowState(10);
 }
@@ -4870,7 +4806,7 @@ void tick_screen_ai_forecast() {
         }
     }
     {
-        bool new_val = evalBooleanProperty(flowState, 26, 3, "Failed to evaluate Hidden flag");
+        bool new_val = evalBooleanProperty(flowState, 22, 3, "Failed to evaluate Hidden flag");
         bool cur_val = lv_obj_has_flag(objects.forecast_learner_button, LV_OBJ_FLAG_HIDDEN);
         if (new_val != cur_val) {
             tick_value_change_obj = objects.forecast_learner_button;
@@ -4883,7 +4819,7 @@ void tick_screen_ai_forecast() {
         }
     }
     {
-        bool new_val = evalBooleanProperty(flowState, 28, 3, "Failed to evaluate Hidden flag");
+        bool new_val = evalBooleanProperty(flowState, 24, 3, "Failed to evaluate Hidden flag");
         bool cur_val = lv_obj_has_flag(objects.forecast_avatar_cover, LV_OBJ_FLAG_HIDDEN);
         if (new_val != cur_val) {
             tick_value_change_obj = objects.forecast_avatar_cover;

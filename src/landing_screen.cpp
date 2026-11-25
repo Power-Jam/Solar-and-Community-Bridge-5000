@@ -10,6 +10,7 @@
 #include "temp_service.h"
 #include "board_config.h"
 #include "audio_service.h"
+#include "time_service.h"
 #include "wifi_service.h"
 
 #include <cstring>
@@ -56,6 +57,8 @@ lv_obj_t *gps_status_label;
 lv_obj_t *downlink_status_label;
 lv_obj_t *energy_labels[INA_SENSOR_COUNT][3];
 lv_obj_t *battery_percent_label;
+lv_obj_t *clock_label;
+lv_obj_t *clock_source_label;
 lv_obj_t *key_labels[50];
 char ssid[33] = {};
 char password[65] = {};
@@ -362,6 +365,21 @@ extern "C" void landing_screen_init()
     lv_obj_t *wifi_button = create_button(landing_screen, 802, 18, 198, 44, "WiFi setup", false);
     lv_obj_add_event_cb(wifi_button, wifi_button_event, LV_EVENT_CLICKED, nullptr);
 
+    // Clock left of the WiFi button, with where the time came from below it.
+    clock_label = lv_label_create(landing_screen);
+    lv_obj_set_pos(clock_label, 486, 16);
+    lv_obj_set_width(clock_label, 300);
+    lv_obj_set_style_text_align(clock_label, LV_TEXT_ALIGN_RIGHT, LV_PART_MAIN);
+    lv_obj_set_style_text_color(clock_label, Text, LV_PART_MAIN);
+    lv_obj_set_style_text_font(clock_label, &lv_font_montserrat_24, LV_PART_MAIN);
+    lv_label_set_text(clock_label, "--:--:--");
+    clock_source_label = lv_label_create(landing_screen);
+    lv_obj_set_pos(clock_source_label, 486, 48);
+    lv_obj_set_width(clock_source_label, 300);
+    lv_obj_set_style_text_align(clock_source_label, LV_TEXT_ALIGN_RIGHT, LV_PART_MAIN);
+    lv_obj_set_style_text_color(clock_source_label, Muted, LV_PART_MAIN);
+    lv_label_set_text(clock_source_label, "Waiting for GPS or WiFi");
+
     // Two compact rows: solar panel -> inverter, and below it battery -> inverter.
     const char *titles[INA_SENSOR_COUNT][3] = {
         {"SOLAR VOLTAGE", "SOLAR CURRENT", "SOLAR POWER"},
@@ -492,9 +510,38 @@ void update_temperature()
     }
 }
 
+// Once a second: the time (SAST) and which source set it.
+void update_clock()
+{
+    static uint32_t last_ms;
+    static bool first = true;
+    const uint32_t now = millis();
+    if (!clock_label || (!first && now - last_ms < 1000)) {
+        return;
+    }
+    first = false;
+    last_ms = now;
+    struct tm local {};
+    if (!time_service_now(&local)) {
+        lv_label_set_text(clock_label, "--:--:--");
+        lv_label_set_text(clock_source_label, "Waiting for GPS or WiFi");
+        return;
+    }
+    lv_label_set_text_fmt(clock_label, "%02d:%02d:%02d", local.tm_hour, local.tm_min, local.tm_sec);
+    const TimeSource source = time_service_source();
+    // A soft restart keeps the ESP32 clock, so it can be valid before either source set it.
+    const char *from = source == TimeSource::Gps    ? "GPS"
+                       : source == TimeSource::Wifi ? "WiFi"
+                                                    : "before restart";
+    char date[24];
+    strftime(date, sizeof(date), "%a %d %b %Y", &local); // "Wed 25 Nov 2026"
+    lv_label_set_text_fmt(clock_source_label, "%s / SAST, from %s", date, from);
+}
+
 extern "C" void landing_screen_tick()
 {
     update_temperature();
+    update_clock();
     if (wifi_read_status(wifi_status, sizeof(wifi_status))) {
         update_wifi_fields();
     }

@@ -1,5 +1,7 @@
 #include "wifi_service.h"
 
+#include "time_service.h"
+
 #include <Arduino.h>
 #include <Preferences.h>
 #include <WiFi.h>
@@ -77,6 +79,8 @@ void wifi_task(void *)
         if (millis() - report_at >= 2000) {
             char text[160];
             if (WiFi.STA.connected() && WiFi.STA.hasIP()) {
+                // With an IP address the network stack is up: NTP can start (only once).
+                time_service_start_ntp();
                 snprintf(text, sizeof(text), "%s / %s", WiFi.SSID().c_str(),
                          WiFi.localIP().toString().c_str());
                 if (save_on_connect && WiFi.SSID() == command.ssid) {
