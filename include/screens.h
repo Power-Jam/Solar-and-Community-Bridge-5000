@@ -21,7 +21,8 @@ enum ScreensEnum {
     SCREEN_ID_TESTING_SENSORS = 8,
     SCREEN_ID_PROFILE_PAGE = 9,
     SCREEN_ID_SHOP_PAGE = 10,
-    _SCREEN_ID_LAST = 10
+    SCREEN_ID_AI_FORECAST = 11,
+    _SCREEN_ID_LAST = 11
 };
 
 typedef struct _objects_t {
@@ -35,6 +36,7 @@ typedef struct _objects_t {
     lv_obj_t *testing_sensors;
     lv_obj_t *profile_page;
     lv_obj_t *shop_page;
+    lv_obj_t *ai_forecast;
     lv_obj_t *nav_bar_chapters;
     lv_obj_t *nav_bar_chapters__nav_bar;
     lv_obj_t *nav_bar_chapters__back_button;
@@ -221,6 +223,19 @@ typedef struct _objects_t {
     lv_obj_t *shop_item_12__card;
     lv_obj_t *shop_item_12__owned_badge;
     lv_obj_t *shop_item_12__owned_label;
+    lv_obj_t *nav_bar_ai_forecast;
+    lv_obj_t *nav_bar_ai_forecast__nav_bar;
+    lv_obj_t *nav_bar_ai_forecast__back_button;
+    lv_obj_t *nav_bar_ai_forecast__battery_button;
+    lv_obj_t *nav_bar_ai_forecast__help_button;
+    lv_obj_t *nav_bar_ai_forecast__avatar_button;
+    lv_obj_t *nav_bar_ai_forecast__avatar_image;
+    lv_obj_t *nav_bar_ai_forecast__coins_button;
+    lv_obj_t *nav_bar_ai_forecast__obj0;
+    lv_obj_t *nav_bar_ai_forecast__battery_button_no_coins;
+    lv_obj_t *nav_bar_ai_forecast__help_button_no_coins;
+    lv_obj_t *nav_bar_ai_forecast__avatar_button_no_coins;
+    lv_obj_t *nav_bar_ai_forecast__avatar_image_no_coins;
     lv_obj_t *homepage_background;
     lv_obj_t *btn_start;
     lv_obj_t *btn_users;
@@ -448,6 +463,30 @@ typedef struct _objects_t {
     lv_obj_t *close_button;
     lv_obj_t *overlay_balance;
     lv_obj_t *overlay_price;
+    lv_obj_t *obj11;
+    lv_obj_t *obj12;
+    lv_obj_t *obj13;
+    lv_obj_t *obj14;
+    lv_obj_t *ai_sessions_label;
+    lv_obj_t *obj15;
+    lv_obj_t *obj16;
+    lv_obj_t *obj17;
+    lv_obj_t *ai_battery_life_label;
+    lv_obj_t *obj18;
+    lv_obj_t *obj19;
+    lv_obj_t *obj20;
+    lv_obj_t *obj21;
+    lv_obj_t *obj22;
+    lv_obj_t *obj23;
+    lv_obj_t *battery_chart;
+    lv_obj_t *obj24;
+    lv_obj_t *obj25;
+    lv_obj_t *obj26;
+    lv_obj_t *chart_time_label_1;
+    lv_obj_t *chart_time_label_2;
+    lv_obj_t *chart_now_label;
+    lv_obj_t *chart_time_label_3;
+    lv_obj_t *chart_time_label_4;
 } objects_t;
 
 extern objects_t objects;
@@ -491,6 +530,10 @@ void tick_screen_profile_page();
 void create_screen_shop_page();
 void delete_screen_shop_page();
 void tick_screen_shop_page();
+
+void create_screen_ai_forecast();
+void delete_screen_ai_forecast();
+void tick_screen_ai_forecast();
 
 void create_user_widget_nav_bar(lv_obj_t *parent_obj, void *flowState, int startWidgetIndex);
 void tick_user_widget_nav_bar(void *flowState, int startWidgetIndex);

@@ -90,6 +90,7 @@ lv_obj_t *const *nav_avatars[] = {
     &objects.nav_bar_level__avatar_image, &objects.nav_bar_level__avatar_image_no_coins,
     &objects.nav_bar_profile__avatar_image, &objects.nav_bar_profile__avatar_image_no_coins,
     &objects.nav_bar_shop__avatar_image, &objects.nav_bar_shop__avatar_image_no_coins,
+    &objects.nav_bar_ai_forecast__avatar_image, &objects.nav_bar_ai_forecast__avatar_image_no_coins,
 };
 
 User *current_user()

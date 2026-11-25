@@ -43,6 +43,8 @@ Indicator indicators[] = {
     {&objects.nav_bar_profile__battery_button_no_coins},
     {&objects.nav_bar_shop__battery_button},
     {&objects.nav_bar_shop__battery_button_no_coins},
+    {&objects.nav_bar_ai_forecast__battery_button},
+    {&objects.nav_bar_ai_forecast__battery_button_no_coins},
 };
 
 // A plain rectangle that lets touches through to the button.

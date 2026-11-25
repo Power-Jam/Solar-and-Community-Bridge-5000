@@ -53,6 +53,7 @@ const Background backgrounds[] = {
     {&objects.nav_bar_level__nav_bar, "S:/assets/nav-bar.jpg"},
     {&objects.nav_bar_profile__nav_bar, "S:/assets/nav-bar-profile.jpg"},
     {&objects.nav_bar_shop__nav_bar, "S:/assets/nav-bar-shop.jpg"},
+    {&objects.nav_bar_ai_forecast__nav_bar, "S:/assets/nav-bar-ai-forecast.jpg"},
     LEVEL_POINT_IMAGES(1),
     LEVEL_POINT_IMAGES(2),
     LEVEL_POINT_IMAGES(3),
