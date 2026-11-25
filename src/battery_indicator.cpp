@@ -27,6 +27,8 @@ constexpr int TextX = 41;
 
 struct Indicator {
     lv_obj_t **button; // In the EEZ objects table; created by ui_init().
+    // The battery button opens the energy overview; on that screen itself it does nothing.
+    bool clickable = true;
     lv_obj_t *attached_to;
     lv_obj_t *fill;
     lv_obj_t *label;
@@ -43,8 +45,8 @@ Indicator indicators[] = {
     {&objects.nav_bar_profile__battery_button_no_coins},
     {&objects.nav_bar_shop__battery_button},
     {&objects.nav_bar_shop__battery_button_no_coins},
-    {&objects.nav_bar_ai_forecast__battery_button},
-    {&objects.nav_bar_ai_forecast__battery_button_no_coins},
+    {&objects.nav_bar_ai_forecast__battery_button, false},
+    {&objects.nav_bar_ai_forecast__battery_button_no_coins, false},
 };
 
 // A plain rectangle that lets touches through to the button.
@@ -71,6 +73,10 @@ void button_deleted(lv_event_t *event)
 void attach(Indicator &indicator, lv_obj_t *button)
 {
     lv_obj_add_event_cb(button, button_deleted, LV_EVENT_DELETE, &indicator);
+    if (!indicator.clickable) {
+        // No CLICKED event, so the nav bar flow never starts, and no pressed look either.
+        lv_obj_remove_flag(button, LV_OBJ_FLAG_CLICKABLE);
+    }
     // The button's own padding would shift the children; place them from its corner.
     lv_obj_set_style_pad_all(button, 0, LV_PART_MAIN);
 

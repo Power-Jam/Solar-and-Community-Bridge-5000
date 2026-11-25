@@ -117,8 +117,9 @@ void splash_screen_tick()
         lv_screen_load_anim(next_screen, LV_SCR_LOAD_ANIM_FADE_IN, 300, 0, true);
 #else
         // Straight to the app screens, through the EEZ flow as the dashboard's button does;
-        // the splash is deleted once the fade has finished.
-        eez_flow_set_screen(SCREEN_ID_HOME_PAGE, LV_SCR_LOAD_ANIM_FADE_IN, 300, 0);
+        // the splash is deleted once the fade has finished. The energy overview comes first,
+        // before choosing a learner.
+        eez_flow_set_screen(SCREEN_ID_AI_FORECAST, LV_SCR_LOAD_ANIM_FADE_IN, 300, 0);
         lv_obj_delete_delayed(splash, 400);
 #endif
         splash = nullptr;

@@ -192,7 +192,8 @@ void add_label(lv_obj_t *parent, int x, int y, const char *text, lv_color_t colo
 void open_existing_screens(lv_event_t *event)
 {
     if (lv_event_get_code(event) == LV_EVENT_CLICKED) {
-        eez_flow_set_screen(SCREEN_ID_HOME_PAGE, LV_SCR_LOAD_ANIM_NONE, 0, 0);
+        // The app starts on the energy overview, before choosing a learner.
+        eez_flow_set_screen(SCREEN_ID_AI_FORECAST, LV_SCR_LOAD_ANIM_NONE, 0, 0);
     }
 }
 

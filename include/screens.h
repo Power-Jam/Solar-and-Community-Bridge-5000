@@ -487,6 +487,9 @@ typedef struct _objects_t {
     lv_obj_t *chart_now_label;
     lv_obj_t *chart_time_label_3;
     lv_obj_t *chart_time_label_4;
+    lv_obj_t *forecast_learner_button;
+    lv_obj_t *obj27;
+    lv_obj_t *forecast_avatar_cover;
 } objects_t;
 
 extern objects_t objects;
