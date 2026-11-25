@@ -51,7 +51,26 @@
 #define LORA_GPIO_TX_ENABLE 52
 
 #define LORA_TCXO_VOLTAGE 1.8f
-#define LORA_AIRTIME_ALLOWANCE_MS_PER_HOUR 1250
+// Airtime per hour. The board is on about 3 hours a day: 3 h x 10 s = 30 s a day, the TTN fair
+// use limit (and well under the legal 1% = 36 s per hour). Lower it to 1250 for a board that
+// stays on all day.
+#define LORA_AIRTIME_ALLOWANCE_MS_PER_HOUR 10000
+
+// Spreading factor of the first TTN join attempt (7..12). Every failed attempt goes one SF
+// higher, up to SF12. SF9 reaches through the walls of the building on the first try.
+#define LORA_JOIN_START_SF 12
+
+// Automatic uplinks, in minutes (0 = only with the dashboard button). Counted from joining TTN,
+// and again from every send of that type (a button press too). When there is nothing to send
+// yet (no GPS fix, no battery reading) it is tried again after LORA_AUTO_RETRY_MINUTES.
+// Automatic sending is off for now: only the buttons send. Normal values: 15, 30, (24 * 60).
+#define LORA_AUTO_BATTERY_MINUTES 0
+#define LORA_AUTO_TEMPERATURE_MINUTES 0
+#define LORA_AUTO_GPS_MINUTES 0
+#define LORA_AUTO_RETRY_MINUTES 30
+// The GPS needs a few minutes for a fix after power-up: look again sooner for it. The automatic
+// location goes once per calendar day (GPS date, kept in flash), also across restarts.
+#define LORA_AUTO_GPS_RETRY_MINUTES 5
 
 // First INA226, between the solar panel and the inverter module (A0 and A1 to GND = 0x40).
 #define INA_ADDRESS 0x41

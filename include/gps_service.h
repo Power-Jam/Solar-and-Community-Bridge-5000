@@ -9,6 +9,8 @@ struct GpsFix {
     double longitude;
     bool satellites_valid;
     uint8_t satellites;
+    // UTC date of the fix as YYYYMMDD, 0 while the GPS has not sent a date yet.
+    uint32_t date;
 };
 
 void gps_service_init();

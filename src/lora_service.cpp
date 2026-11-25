@@ -164,7 +164,9 @@ void publish_downlink(uint8_t port, const uint8_t *data, size_t length)
 
 uint8_t join_datarate(uint32_t retry_ms)
 {
-    uint8_t datarate = 5;
+    static_assert(LORA_JOIN_START_SF >= 7 && LORA_JOIN_START_SF <= 12,
+                  "LORA_JOIN_START_SF must be 7..12");
+    uint8_t datarate = 12 - LORA_JOIN_START_SF;
     while (datarate > 0 && retry_ms >= 120000) {
         --datarate;
         retry_ms /= 2;
@@ -335,10 +337,73 @@ void radio_task(void *)
 
     uint32_t join_retry_ms = 60000;
     uint8_t pending = 0;
+
+    // Automatic uplinks: each type is queued when its time has come, and the airtime limit
+    // spaces them out like button presses. The first ones go right after joining TTN.
+    struct AutoUplink {
+        uint8_t kind;
+        uint32_t interval_ms;
+        uint32_t retry_ms;
+        uint32_t due_ms;
+        bool started;
+    };
+    AutoUplink schedule[] = {
+        {static_cast<uint8_t>(LoraUplink::Energy), LORA_AUTO_BATTERY_MINUTES * 60000UL,
+         LORA_AUTO_RETRY_MINUTES * 60000UL},
+        {static_cast<uint8_t>(LoraUplink::Temperature), LORA_AUTO_TEMPERATURE_MINUTES * 60000UL,
+         LORA_AUTO_RETRY_MINUTES * 60000UL},
+        {static_cast<uint8_t>(LoraUplink::Gps), LORA_AUTO_GPS_MINUTES * 60000UL,
+         LORA_AUTO_GPS_RETRY_MINUTES * 60000UL},
+    };
+    // After a send the next one is due after the interval; when there was nothing to send
+    // (no fix, no reading) after the shorter retry time.
+    auto reschedule = [&](uint8_t kind, bool sent) {
+        for (AutoUplink &entry : schedule) {
+            if (entry.kind == kind && entry.interval_ms) {
+                const uint32_t delay_ms =
+                    sent ? entry.interval_ms : std::min(entry.interval_ms, entry.retry_ms);
+                entry.due_ms = millis() + delay_ms;
+                entry.started = true;
+            }
+        }
+    };
+
+    // The automatic location goes once per calendar day: the GPS date of the last one is kept
+    // in flash, so restarts on the same day do not send it again. A button press always sends.
+    constexpr uint8_t GpsKind = static_cast<uint8_t>(LoraUplink::Gps);
+    bool gps_is_automatic = false;
+    uint32_t gps_sent_date = storage.getUInt("gps_date", 0);
+
     for (;;) {
+        if (node.isActivated()) {
+            const uint32_t now = millis();
+            for (AutoUplink &entry : schedule) {
+                if (entry.interval_ms &&
+                    (!entry.started || static_cast<int32_t>(now - entry.due_ms) >= 0)) {
+                    entry.started = true;
+                    // Pushed back here so it is not queued again every loop while it waits
+                    // for airtime; set properly once it has been sent.
+                    entry.due_ms = now + entry.interval_ms;
+                    if (!(pending & entry.kind)) {
+                        Serial.printf("[LoRa] Automatic %s uplink\n", uplink_name(entry.kind));
+                        if (entry.kind == GpsKind) {
+                            gps_is_automatic = true;
+                        }
+                    }
+                    pending |= entry.kind;
+                }
+            }
+        }
+
         if (!node.isActivated() && node.can_transmit()) {
-            publish_status("Joining TTN / LoRaWAN 1.1...");
-            result = node.setDatarate(join_datarate(join_retry_ms));
+            // EU868 DR0..DR5 at 125 kHz are SF12..SF7.
+            const uint8_t join_dr = join_datarate(join_retry_ms);
+            const unsigned join_sf = 12U - join_dr;
+            char join_status[160];
+            snprintf(join_status, sizeof(join_status),
+                     "Joining TTN / LoRaWAN 1.1 / SF%u...", join_sf);
+            publish_status(join_status);
+            result = node.setDatarate(join_dr);
             if (result == RADIOLIB_ERR_NONE) {
                 LoRaWANJoinEvent_t event{};
                 result = node.activateOTAA(&event);
@@ -352,12 +417,13 @@ void radio_task(void *)
                 }
                 if (joined) {
                     join_retry_ms = 60000;
-                    publish_status("Connected to TTN / LoRaWAN 1.1");
+                    snprintf(join_status, sizeof(join_status),
+                             "Connected to TTN / LoRaWAN 1.1 / SF%u", join_sf);
+                    publish_status(join_status);
                 } else {
-                    char status[160];
-                    snprintf(status, sizeof(status),
-                             "TTN join failed (%d) / retrying", result);
-                    publish_status(status);
+                    snprintf(join_status, sizeof(join_status),
+                             "TTN join failed at SF%u (%d) / retrying", join_sf, result);
+                    publish_status(join_status);
                     node.defer(join_retry_ms, esp_random() % 60001U);
                     join_retry_ms =
                         std::min<uint32_t>(join_retry_ms * 2, 86400000);
@@ -389,12 +455,31 @@ void radio_task(void *)
                 }
                 publish_status(status);
             }
+            if (command & GpsKind) {
+                gps_is_automatic = false;
+            }
             pending |= command;
         }
         if (pending && node.isActivated() && node.can_transmit()) {
             // Send the queued types one at a time, lowest bit first, as airtime allows.
             const uint8_t kind = pending & static_cast<uint8_t>(-pending);
             pending &= static_cast<uint8_t>(~kind);
+
+            if (kind == GpsKind && gps_is_automatic) {
+                gps_is_automatic = false;
+                GpsFix fix{};
+                if (!gps_service_latest(&fix)) {
+                    publish_status("GPS not sent / waiting for a GPS fix");
+                    reschedule(kind, false);
+                    continue;
+                }
+                if (fix.date != 0 && fix.date == gps_sent_date) {
+                    Serial.printf("[LoRa] Location already sent today (%lu)\n",
+                                  static_cast<unsigned long>(fix.date));
+                    reschedule(kind, true);
+                    continue;
+                }
+            }
 
             Uplink uplink{};
             const char *error = build_uplink(kind, uplink);
@@ -403,8 +488,10 @@ void radio_task(void *)
                 snprintf(status, sizeof(status), "%s not sent / %s",
                          uplink_name(kind), error);
                 publish_status(status);
+                reschedule(kind, false);
                 continue;
             }
+            reschedule(kind, true);
 
             uint8_t downlink[255] = {};
             size_t downlink_length = sizeof(downlink);
@@ -431,6 +518,12 @@ void radio_task(void *)
                 snprintf(status, sizeof(status),
                          "%s sent / fPort %u / RX status %d",
                          uplink_name(kind), uplink.port, result);
+                GpsFix fix{};
+                if (kind == GpsKind && gps_service_latest(&fix) && fix.date != 0 &&
+                    fix.date != gps_sent_date) {
+                    gps_sent_date = fix.date;
+                    storage.putUInt("gps_date", gps_sent_date);
+                }
             } else {
                 snprintf(status, sizeof(status),
                          "%s uplink failed (%d) / retry with button",

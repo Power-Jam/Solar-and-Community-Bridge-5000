@@ -67,6 +67,10 @@ void gps_task(void *)
                     gps.satellites.isValid() && gps.satellites.age() < 10000;
                 fix.satellites = static_cast<uint8_t>(
                     std::min<uint32_t>(gps.satellites.value(), 254));
+                if (gps.date.isValid() && gps.date.year() >= 2020) {
+                    fix.date = gps.date.year() * 10000UL + gps.date.month() * 100UL +
+                               gps.date.day();
+                }
                 publish_fix(&fix);
 
                 const char *satellites =
